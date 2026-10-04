@@ -118,12 +118,84 @@ def test_self_improve_applies_valid_change():
     print("OK self_improve_applies_valid_change")
 
 
+def test_shell_modes():
+    from jarvis import config
+    from jarvis.tools import _shell_needs_confirmation
+    original = config.SHELL_MODE
+    try:
+        config.SHELL_MODE = "confirm"
+        assert _shell_needs_confirmation({"command": "echo hola"}) is True
+        config.SHELL_MODE = "all"
+        assert _shell_needs_confirmation({"command": "echo hola"}) is False
+        config.SHELL_MODE = "allowlist"
+        assert _shell_needs_confirmation({"command": "echo hola"}) is False
+        assert _shell_needs_confirmation({"command": "rm -rf /"}) is True
+    finally:
+        config.SHELL_MODE = original
+    print("OK shell_modes")
+
+
+def test_ws_confirmation_does_not_deadlock():
+    """El servidor debe pedir permiso y seguir tras la respuesta del usuario."""
+    import asyncio
+    import threading
+    import time
+
+    import uvicorn
+
+    from jarvis import server
+
+    class Brain:
+        def __init__(self):
+            self.n = 0
+
+        def chat(self, messages, tools=None):
+            self.n += 1
+            if self.n == 1:
+                return {"role": "assistant", "content": None, "tool_calls": [{
+                    "id": "1",
+                    "function": {"name": "write_file",
+                                 "arguments": json.dumps({"path": "/tmp/jarvis_ws_test.txt",
+                                                          "content": "ok"})},
+                }]}
+            return {"role": "assistant", "content": "Hecho."}
+
+        def health(self):
+            return True, "fake"
+
+    server.agent.brain = Brain()
+    server.agent._with_voice = lambda text: (text, None, None)
+
+    cfg = uvicorn.Config(server.app, host="127.0.0.1", port=8802, log_level="warning")
+    srv = uvicorn.Server(cfg)
+    threading.Thread(target=srv.run, daemon=True).start()
+    time.sleep(1.5)
+
+    import websockets
+
+    async def flow():
+        async with websockets.connect("ws://127.0.0.1:8802/ws") as ws:
+            await ws.send(json.dumps({"message": "escribe un archivo"}))
+            first = json.loads(await asyncio.wait_for(ws.recv(), timeout=5))
+            assert first.get("type") == "thinking", first
+            second = json.loads(await asyncio.wait_for(ws.recv(), timeout=5))
+            assert second.get("type") == "confirm", second
+            await ws.send(json.dumps({"confirm": True}))
+            final = json.loads(await asyncio.wait_for(ws.recv(), timeout=5))
+            assert final.get("reply") == "Hecho.", final
+
+    asyncio.run(flow())
+    print("OK ws_confirmation_does_not_deadlock")
+
+
 if __name__ == "__main__":
     test_tools_registered()
     test_shell_allowlist_blocks()
+    test_shell_modes()
     test_agent_plain_reply()
     test_agent_tool_call_roundtrip()
     test_dangerous_tool_needs_confirmation()
+    test_ws_confirmation_does_not_deadlock()
     test_self_improve_reverts_on_broken_code()
     test_self_improve_applies_valid_change()
     print("\nTODAS LAS PRUEBAS PASARON")

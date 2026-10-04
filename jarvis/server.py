@@ -79,19 +79,24 @@ async def ws_endpoint(ws: WebSocket) -> None:
     await ws.accept()
     history: list[dict] = []
     loop = asyncio.get_running_loop()
-    pending: asyncio.Future | None = None
 
     async def ask(tool_name: str, args: dict) -> bool:
-        """Pregunta al usuario por el navegador si autoriza una acción."""
-        nonlocal pending
-        pending = loop.create_future()
+        """Pregunta al usuario si autoriza una acción y espera SU respuesta.
+
+        Se lee aquí mismo la respuesta para no bloquear el bucle principal
+        (que está ocupado ejecutando el agente). Se pregunta de una en una.
+        """
         await ws.send_text(json.dumps({
             "type": "confirm",
             "tool": tool_name,
             "args": args,
             "question": f"¿Autorizas ejecutar «{tool_name}»?",
         }))
-        return await pending
+        while True:
+            raw = await ws.receive_text()
+            data = json.loads(raw)
+            if "confirm" in data:
+                return bool(data["confirm"])
 
     def confirm(tool_name: str, args: dict) -> bool:
         # Se llama desde el hilo del agente; hay que volver al bucle async.
@@ -102,12 +107,6 @@ async def ws_endpoint(ws: WebSocket) -> None:
         while True:
             raw = await ws.receive_text()
             data = json.loads(raw)
-
-            # Respuesta del usuario a una confirmación pendiente.
-            if "confirm" in data and pending is not None and not pending.done():
-                pending.set_result(bool(data["confirm"]))
-                continue
-
             message = data.get("message", "")
             if not message:
                 continue

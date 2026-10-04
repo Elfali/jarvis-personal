@@ -70,12 +70,49 @@
     color: #ffd9b0; padding: 10px 16px; border-radius: 10px; font-size: 13px;
     display: none; max-width: 90vw; text-align: center;
   }
+  #confirm {
+    position: fixed; inset: 0; display: none; place-items: center;
+    background: rgba(5,2,0,.72); backdrop-filter: blur(3px); z-index: 10;
+  }
+  #confirm.show { display: grid; }
+  #confirm .box {
+    max-width: 560px; width: 90vw; padding: 26px 28px; border-radius: 16px;
+    background: rgba(26,15,5,.96); border: 1px solid var(--orange);
+    box-shadow: 0 0 40px rgba(255,140,60,.35); text-align: center;
+  }
+  #confirm h2 { margin: 0 0 14px; font-size: 15px; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--orange); }
+  #confirm pre {
+    margin: 0 0 20px; padding: 14px; border-radius: 10px; text-align: left;
+    background: rgba(0,0,0,.5); border: 1px solid rgba(255,140,60,.35);
+    color: #ffd9b0; font-size: 13px; white-space: pre-wrap; word-break: break-word;
+    max-height: 200px; overflow: auto;
+  }
+  #confirm .row { display: flex; gap: 12px; justify-content: center; }
+  #confirm button {
+    padding: 10px 26px; border-radius: 22px; font-size: 14px; cursor: pointer;
+    border: 1px solid var(--orange);
+  }
+  #confirm .no { background: transparent; color: var(--orange-soft); }
+  #confirm .yes { background: var(--orange); color: #1a0f05; font-weight: 600; }
+  #confirm button:hover { filter: brightness(1.15); }
 </style>
 </head>
 <body>
   <canvas id="orb"></canvas>
 
   <div id="warn"></div>
+
+  <div id="confirm">
+    <div class="box">
+      <h2>Permiso de JARVIS</h2>
+      <pre id="confirm-detail"></pre>
+      <div class="row">
+        <button class="no" id="confirm-no">Cancelar</button>
+        <button class="yes" id="confirm-yes">Autorizar</button>
+      </div>
+    </div>
+  </div>
 
   <div class="hud">
     <div id="status">en espera</div>
@@ -200,13 +237,31 @@
       else setStatus("en espera");
     }
 
-    // Pide permiso al usuario antes de ejecutar una acción peligrosa.
+    // Pide permiso al usuario antes de ejecutar una acción, de una en una,
+    // en una ventana propia de JARVIS con el comando exacto.
+    const confirmBox = document.getElementById("confirm");
+    const confirmDetail = document.getElementById("confirm-detail");
+    let confirmOpen = false;
+
     function askConfirm(msg) {
+      if (confirmOpen) return;          // ya hay una petición en pantalla
+      confirmOpen = true;
       const detalle = msg.args && msg.args.command ? msg.args.command
-        : JSON.stringify(msg.args || {});
-      const ok = window.confirm(`JARVIS quiere ejecutar:\n\n${detalle}\n\n¿Lo autorizas?`);
-      ws.send(JSON.stringify({ confirm: ok }));
-      setStatus(ok ? "autorizado" : "cancelado");
+        : JSON.stringify(msg.args || {}, null, 2);
+      const accion = { write_file: "escribir un archivo",
+                       run_shell: "ejecutar un comando" }[msg.tool] || msg.tool;
+      confirmDetail.textContent = `Quiere ${accion}:\n\n${detalle}`;
+      confirmBox.classList.add("show");
+      setStatus("esperando tu permiso");
+
+      const responder = (ok) => {
+        confirmBox.classList.remove("show");
+        confirmOpen = false;
+        ws.send(JSON.stringify({ confirm: ok }));
+        setStatus(ok ? "autorizado" : "cancelado");
+      };
+      document.getElementById("confirm-yes").onclick = () => responder(true);
+      document.getElementById("confirm-no").onclick = () => responder(false);
     }
 
     // Estado inicial: ¿tiene cerebro?
