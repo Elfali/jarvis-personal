@@ -30,7 +30,12 @@ class VoiceError(RuntimeError):
 async def _edge_bytes(text: str) -> bytes:
     import edge_tts
 
-    communicate = edge_tts.Communicate(text, config.VOICE_NAME)
+    kwargs = {}
+    if config.VOICE_RATE:
+        kwargs["rate"] = config.VOICE_RATE
+    if config.VOICE_PITCH:
+        kwargs["pitch"] = config.VOICE_PITCH
+    communicate = edge_tts.Communicate(text, config.VOICE_NAME, **kwargs)
     buffer = bytearray()
     async for chunk in communicate.stream():
         if chunk["type"] == "audio":

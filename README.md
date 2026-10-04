@@ -15,7 +15,7 @@ para funcionar **gratis** y ser **tuyo**.
 | Pieza | Por defecto (gratis) | La del JARVIS original (de pago) |
 |---|---|---|
 | Cerebro | **Ollama** local, privado | Claude Code (suscripción Claude) |
-| Voz | **edge-tts** (voz británica `en-GB-RyanNeural`) | **Fish Audio** (voz idéntica al original) |
+| Voz | **edge-tts** (voz británica `es-ES-AlvaroNeural`, España) | **Fish Audio** (voz idéntica al original) |
 | Oído | Web Speech API de Chrome | — |
 | Interfaz | Orbe de partículas propio | — |
 
@@ -151,7 +151,7 @@ JARVIS_VOICE_NAME=es-ES-AlvaroNeural
 Otras voces: `es-MX-JorgeNeural`, `es-AR-TomasNeural`, `es-ES-ElviraNeural`.
 Para oírla antes de arrancar: `./say-test.sh`.
 
-### La voz del JARVIS original
+### La voz del JARVIS original (avanzado)
 
 La voz británica idéntica al original es un modelo de **Fish Audio** (de pago).
 Pon una voz británica gratis suena a inglés leyendo español, así que para español

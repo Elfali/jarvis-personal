@@ -39,10 +39,12 @@ BRAIN_API_KEY = get("JARVIS_BRAIN_API_KEY", "")
 
 # --- Voz ---
 VOICE_PROVIDER = get("JARVIS_VOICE_PROVIDER", "edge")  # edge | fish | say
-# Voz por defecto: española (de España), para que JARVIS se entienda al hablar
-# en español. Para la voz británica del original usa Fish Audio o pon
-# JARVIS_VOICE_NAME=en-GB-RyanNeural en .env.
+# Voz por defecto: española (de España), clara y masculina (estilo JARVIS).
+# Alternativa femenina: es-ES-ElviraNeural. Otras: es-MX-JorgeNeural.
 VOICE_NAME = get("JARVIS_VOICE_NAME", "es-ES-AlvaroNeural")
+# Hablar un poco más despacio mejora la claridad. Ej: -10%, +15%. Vacío = normal.
+VOICE_RATE = get("JARVIS_VOICE_RATE", "-8%")
+VOICE_PITCH = get("JARVIS_VOICE_PITCH", "")
 FISH_API_KEY = get("FISH_API_KEY", "")
 FISH_VOICE_ID = get("FISH_VOICE_ID", "612b878b113047d9a770c069c8b4fdfe")
 

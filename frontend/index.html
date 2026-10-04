@@ -5,113 +5,150 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>JARVIS</title>
 <style>
-  :root { --cyan: #4fd8ff; --deep: #04070f; }
+  :root {
+    --orange: #ff9a3c;
+    --orange-soft: #ffb060;
+    --bg: #0a0603;
+  }
   * { box-sizing: border-box; }
-  html, body { height: 100%; margin: 0; background: var(--deep);
-    color: #cfefff; font-family: -apple-system, "SF Pro", Helvetica, Arial, sans-serif;
-    overflow: hidden; }
-  #orb { position: fixed; inset: 0; display: block; }
-  .hud { position: fixed; left: 0; right: 0; bottom: 0; padding: 24px 32px 36px;
-    display: flex; flex-direction: column; align-items: center; gap: 14px; }
-  #status { font-size: 13px; letter-spacing: .18em; text-transform: uppercase;
-    color: var(--cyan); opacity: .75; min-height: 18px; }
-  #log { max-width: 760px; width: 100%; text-align: center; font-size: 18px;
-    line-height: 1.5; min-height: 54px; }
-  #log .you { opacity: .55; font-size: 15px; display: block; margin-bottom: 4px; }
-  .mic { width: 68px; height: 68px; border-radius: 50%; border: 1px solid var(--cyan);
-    background: radial-gradient(circle at 50% 40%, rgba(79,216,255,.35), transparent 70%);
-    cursor: pointer; transition: transform .15s, box-shadow .3s; }
-  .mic:hover { transform: scale(1.06); }
-  .mic.listening { box-shadow: 0 0 0 6px rgba(79,216,255,.18), 0 0 40px var(--cyan);
-    animation: pulse 1.4s infinite; }
-  @keyframes pulse { 50% { box-shadow: 0 0 0 14px rgba(79,216,255,.05), 0 0 60px var(--cyan); } }
-  #hint { font-size: 12px; opacity: .4; }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    background: radial-gradient(circle at 50% 45%, #1a0f05 0%, var(--bg) 70%);
+    font-family: -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif;
+    color: var(--orange-soft);
+  }
+  #orb { position: fixed; inset: 0; display: block; cursor: pointer; }
+
+  .hud {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 14px; padding: 24px; pointer-events: none;
+  }
+  #status {
+    font-size: 13px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--orange); opacity: .85; min-height: 16px;
+    text-shadow: 0 0 12px rgba(255,154,60,.6);
+  }
+  #reply {
+    max-width: 720px; text-align: center; font-size: 17px; line-height: 1.5;
+    color: #ffd9b0; opacity: 0; transition: opacity .35s; min-height: 24px;
+    text-shadow: 0 0 18px rgba(255,140,60,.35);
+  }
+  #reply.show { opacity: 1; }
+
+  #mic {
+    pointer-events: auto; width: 74px; height: 74px; border-radius: 50%;
+    border: 2px solid var(--orange); background: rgba(255,140,60,.08);
+    color: var(--orange); font-size: 30px; cursor: pointer;
+    display: grid; place-items: center;
+    box-shadow: 0 0 0 0 rgba(255,154,60,.5), 0 0 28px rgba(255,140,60,.35) inset;
+    transition: transform .15s, box-shadow .25s, background .25s;
+  }
+  #mic:hover { transform: scale(1.08); background: rgba(255,140,60,.16);
+    box-shadow: 0 0 34px rgba(255,154,60,.55), 0 0 28px rgba(255,140,60,.4) inset; }
+  #mic.listening {
+    background: rgba(255,154,60,.3);
+    animation: pulse 1.1s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(255,154,60,.55), 0 0 30px rgba(255,140,60,.5) inset; }
+    50% { box-shadow: 0 0 0 22px rgba(255,154,60,0), 0 0 30px rgba(255,140,60,.5) inset; }
+  }
+  #hint {
+    font-size: 12px; letter-spacing: 1px; color: rgba(255,176,96,.5);
+    pointer-events: none;
+  }
+  #warn {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+    background: rgba(120,40,0,.55); border: 1px solid var(--orange);
+    color: #ffd9b0; padding: 10px 16px; border-radius: 10px; font-size: 13px;
+    display: none; max-width: 90vw; text-align: center;
+  }
 </style>
 </head>
 <body>
-<canvas id="orb"></canvas>
-<div class="hud">
-  <div id="status">En reposo</div>
-  <div id="log"><span class="you"></span></div>
-  <button class="mic" id="mic" title="Hablar"></button>
-  <div id="hint">Clic para hablar · requiere Chrome y permiso de micrófono</div>
-</div>
-<script type="module">
-import { Orb } from "/static/orb.js";
+  <canvas id="orb"></canvas>
 
-const orb = new Orb(document.getElementById("orb"));
-const mic = document.getElementById("mic");
-const statusEl = document.getElementById("status");
-const logEl = document.getElementById("log");
-const history = [];
+  <div id="warn"></div>
 
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recognition = null;
-let listening = false;
+  <div class="hud">
+    <div id="status">en espera</div>
+    <div id="reply"></div>
+    <button id="mic" title="Hablar">🎙️</button>
+    <div id="hint">pasa el ratón sobre el orbe · clic en el orbe para un pulso</div>
+  </div>
 
-function setStatus(text) { statusEl.textContent = text; }
-function show(you, jarvis) {
-  logEl.innerHTML = "";
-  if (you) { const s = document.createElement("span"); s.className = "you";
-    s.textContent = "Tú: " + you; logEl.appendChild(s); }
-  if (jarvis) logEl.appendChild(document.createTextNode(jarvis));
-}
+  <script type="module">
+    import { Orb } from "/static/orb.js";
 
-async function send(message) {
-  setStatus("Pensando…");
-  show(message, "");
-  try {
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, history }),
-    });
-    const data = await res.json();
-    history.push({ role: "user", content: message });
-    history.push({ role: "assistant", content: data.reply });
-    show(message, data.reply);
-    setStatus("Hablando…");
-    if (data.audio) {
-      const audio = new Audio("data:" + data.mime + ";base64," + data.audio);
-      orb.speaking(true);
-      audio.onended = () => { orb.speaking(false); setStatus("En reposo"); };
-      await audio.play();
+    const orb = new Orb(document.getElementById("orb"));
+    const statusEl = document.getElementById("status");
+    const replyEl = document.getElementById("reply");
+    const mic = document.getElementById("mic");
+    const warn = document.getElementById("warn");
+
+    function setStatus(s) { statusEl.textContent = s; }
+    function showReply(t) { replyEl.textContent = t; replyEl.classList.add("show"); }
+    function showWarn(t) { warn.textContent = t; warn.style.display = "block"; }
+
+    // --- Reconocimiento de voz (Chrome) ---
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recog = null, listening = false;
+    if (SR) {
+      recog = new SR();
+      recog.lang = "es-ES";
+      recog.interimResults = true;
+      recog.continuous = false;
+      recog.onstart = () => { listening = true; mic.classList.add("listening"); setStatus("escuchando…"); };
+      recog.onend = () => { listening = false; mic.classList.remove("listening"); setStatus("en espera"); };
+      recog.onerror = (e) => { setStatus("error de micrófono: " + e.error); };
+      recog.onresult = (e) => {
+        let final = "";
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          if (e.results[i].isFinal) final += e.results[i][0].transcript;
+        }
+        if (final.trim()) send(final.trim());
+      };
     } else {
-      setStatus("En reposo");
+      showWarn("Tu navegador no soporta micrófono. Abre JARVIS en Google Chrome.");
     }
-  } catch (err) {
-    show(message, "Error de conexión con el servidor.");
-    setStatus("Error");
-  }
-}
 
-if (!SR) {
-  setStatus("Sin micrófono");
-  document.getElementById("hint").textContent =
-    "Este navegador no soporta reconocimiento de voz. Usa Google Chrome.";
-} else {
-  recognition = new SR();
-  recognition.lang = "es-ES";
-  recognition.interimResults = false;
-  recognition.onresult = (e) => {
-    const text = e.results[0][0].transcript;
-    send(text);
-  };
-  recognition.onend = () => { listening = false; mic.classList.remove("listening"); };
-  recognition.onerror = (e) => { setStatus("Micrófono: " + e.error); listening = false;
-    mic.classList.remove("listening"); };
-}
+    mic.addEventListener("click", () => {
+      if (!recog) return;
+      if (listening) recog.stop(); else recog.start();
+    });
 
-mic.addEventListener("click", () => {
-  if (!recognition) return;
-  if (listening) { recognition.stop(); return; }
-  listening = true; mic.classList.add("listening"); setStatus("Escuchando…");
-  recognition.start();
-});
+    // --- Envío al servidor por WebSocket ---
+    let ws = null;
+    function connect() {
+      ws = new WebSocket(`ws://${location.host}/ws`);
+      ws.onopen = () => setStatus("en espera");
+      ws.onclose = () => { setStatus("reconectando…"); setTimeout(connect, 1500); };
+      ws.onerror = () => setStatus("sin conexión con JARVIS");
+      ws.onmessage = (ev) => handle(JSON.parse(ev.data));
+    }
+    connect();
 
-fetch("/api/health").then(r => r.json()).then(d => {
-  if (!d.brain_ok) setStatus("Cerebro no disponible");
-}).catch(() => {});
-</script>
+    function send(text) { showReply("Tú: " + text); ws.send(JSON.stringify({ message: text })); }
+
+    function playAudio(b64, mime) {
+      if (!b64) return;
+      const audio = new Audio("data:" + (mime || "audio/mpeg") + ";base64," + b64);
+      setStatus("hablando…"); orb.speaking(true);
+      audio.onended = () => { orb.speaking(false); setStatus("en espera"); };
+      audio.play().catch(() => { orb.speaking(false); setStatus("en espera"); });
+    }
+
+    function handle(msg) {
+      if (msg.reply) { showReply(msg.reply); setStatus("pensando…"); orb.speaking(false); }
+      if (msg.audio) playAudio(msg.audio, msg.mime);
+      else if (msg.reply) setStatus("en espera");
+    }
+
+    // Estado inicial: ¿tiene cerebro?
+    fetch("/api/health").then(r => r.json()).then(h => {
+      if (!h.brain_ok) showWarn("⚠️ El cerebro no responde. Ejecuta: bash setup-brain.sh");
+    }).catch(() => {});
+  </script>
 </body>
 </html>
