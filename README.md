@@ -109,6 +109,44 @@ JARVIS_BRAIN_API_KEY=tu_clave
 JARVIS_BRAIN_PROVIDER=claude_code
 ```
 
+## Si algo no funciona
+
+Ejecuta el diagnóstico, que te dice qué falta y cómo arreglarlo:
+
+```bash
+./doctor.sh
+```
+
+### "Mi cerebro no responde"
+
+Ollama no está corriendo. Arréglalo:
+
+```bash
+brew install --cask ollama      # si no lo tienes
+open -a Ollama                  # arráncalo (o: ollama serve)
+ollama pull llama3.1            # descarga el modelo
+```
+
+Si no quieres Ollama, usa una API gratuita (sección "Elegir el cerebro").
+
+### "La voz no se entiende"
+
+Estás usando una voz inglesa para texto en español. En `.env` pon una voz
+española y reinicia:
+
+```env
+JARVIS_VOICE_NAME=es-ES-AlvaroNeural
+```
+
+Otras voces: `es-MX-JorgeNeural`, `es-AR-TomasNeural`, `es-ES-ElviraNeural`.
+Para oírla antes de arrancar: `./say-test.sh`.
+
+### La voz del JARVIS original
+
+La voz británica idéntica al original es un modelo de **Fish Audio** (de pago).
+Pon una voz británica gratis suena a inglés leyendo español, así que para español
+usa las voces de arriba. Para la voz exacta, activa Fish (sección siguiente).
+
 ## La voz exacta del JARVIS original
 
 La voz del original es un modelo de **Fish Audio** (de pago). Para activarla:

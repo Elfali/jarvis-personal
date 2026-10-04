@@ -39,7 +39,10 @@ BRAIN_API_KEY = get("JARVIS_BRAIN_API_KEY", "")
 
 # --- Voz ---
 VOICE_PROVIDER = get("JARVIS_VOICE_PROVIDER", "edge")  # edge | fish | say
-VOICE_NAME = get("JARVIS_VOICE_NAME", "en-GB-RyanNeural")
+# Voz por defecto: española (de España), para que JARVIS se entienda al hablar
+# en español. Para la voz británica del original usa Fish Audio o pon
+# JARVIS_VOICE_NAME=en-GB-RyanNeural en .env.
+VOICE_NAME = get("JARVIS_VOICE_NAME", "es-ES-AlvaroNeural")
 FISH_API_KEY = get("FISH_API_KEY", "")
 FISH_VOICE_ID = get("FISH_VOICE_ID", "612b878b113047d9a770c069c8b4fdfe")
 
