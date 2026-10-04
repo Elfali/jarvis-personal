@@ -61,12 +61,23 @@ LANGUAGE = get("JARVIS_LANGUAGE", "es")
 PORT = int(get("JARVIS_PORT", "8765"))
 
 # --- Límites de seguridad ---
-# Comandos de shell que JARVIS puede ejecutar por sí mismo. Amplía con cuidado.
+# Comandos de shell que JARVIS puede ejecutar sin preguntar. Amplía con cuidado.
 SHELL_ALLOWLIST = [
     "ls", "cat", "echo", "pwd", "whoami", "date", "git", "python", "python3",
     "pip", "node", "npm", "open", "osascript", "curl", "grep", "find", "wc",
     "head", "tail", "mkdir", "touch", "cp", "mv", "sed", "awk", "diff",
 ]
+
+# Comandos extra que añades desde el .env (separados por comas).
+SHELL_EXTRA_ALLOWED = [
+    c.strip() for c in get("JARVIS_SHELL_EXTRA_ALLOWED", "").split(",") if c.strip()
+]
+
+# Nivel de acceso a la shell:
+#   allowlist -> solo los comandos de la lista (lo más seguro, por defecto)
+#   confirm   -> CUALQUIER comando, pero JARVIS pide permiso antes de cada uno
+#   all       -> CUALQUIER comando sin preguntar (potente y peligroso)
+SHELL_MODE = get("JARVIS_SHELL_MODE", "allowlist")
 
 SYSTEM_PROMPT = f"""Eres {ASSISTANT_NAME}, un asistente personal británico al estilo de
 Tony Stark: educado, directo, con humor seco, competente y proactivo. Llamas al

@@ -193,9 +193,20 @@
     }
 
     function handle(msg) {
+      if (msg.type === "thinking") { setStatus("pensando…"); orb.speaking(false); return; }
+      if (msg.type === "confirm") { askConfirm(msg); return; }
       if (msg.reply) { showReply(msg.reply); setStatus("pensando…"); orb.speaking(false); }
       if (msg.reply) playAudio(msg.audio, msg.mime, msg.reply);
       else setStatus("en espera");
+    }
+
+    // Pide permiso al usuario antes de ejecutar una acción peligrosa.
+    function askConfirm(msg) {
+      const detalle = msg.args && msg.args.command ? msg.args.command
+        : JSON.stringify(msg.args || {});
+      const ok = window.confirm(`JARVIS quiere ejecutar:\n\n${detalle}\n\n¿Lo autorizas?`);
+      ws.send(JSON.stringify({ confirm: ok }));
+      setStatus(ok ? "autorizado" : "cancelado");
     }
 
     // Estado inicial: ¿tiene cerebro?

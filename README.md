@@ -131,6 +131,40 @@ en 1 o 2 frases, así piensa y habla mucho menos tiempo. La opción más rápida
 todas es usar una **API en la nube** (Groq responde en menos de un segundo; ver
 "Elegir el cerebro").
 
+## Darle acceso a comandos (niveles de permiso)
+
+Por defecto JARVIS solo ejecuta una **lista blanca** de comandos seguros. Puedes
+ampliar su acceso con `JARVIS_SHELL_MODE` en `.env`, de menos a más potente:
+
+| Modo | Qué permite | Seguridad |
+|---|---|---|
+| `allowlist` (por defecto) | Solo la lista de comandos seguros + los que añadas | Máxima |
+| `confirm` | **Cualquier** comando, pero pide permiso antes de cada uno | Alta |
+| `all` | Cualquier comando sin preguntar | Baja (¡cuidado!) |
+
+Además, en cualquier modo los comandos **destructivos** (`rm`, `sudo`, `dd`,
+`shutdown`…) siempre piden confirmación.
+
+### Ejemplos
+
+Permitir comandos concretos sin preguntar:
+```env
+JARVIS_SHELL_EXTRA_ALLOWED=uptime,df,du,top
+```
+
+Permitir cualquiera, con confirmación por cada uno (recomendado si quieres libertad):
+```env
+JARVIS_SHELL_MODE=confirm
+```
+
+Permitir todo sin preguntar (solo si confías plenamente):
+```env
+JARVIS_SHELL_MODE=all
+```
+
+Cuando JARVIS pida permiso, verás un diálogo en la interfaz con el comando exacto
+y podrás aceptar o rechazar.
+
 ## Si algo no funciona
 
 Ejecuta el diagnóstico, que te dice qué falta y cómo arreglarlo:

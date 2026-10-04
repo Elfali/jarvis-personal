@@ -10,6 +10,7 @@ Endpoints:
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 
@@ -77,15 +78,42 @@ def improve(payload: ImproveIn) -> dict:
 async def ws_endpoint(ws: WebSocket) -> None:
     await ws.accept()
     history: list[dict] = []
+    loop = asyncio.get_running_loop()
+    pending: asyncio.Future | None = None
+
+    async def ask(tool_name: str, args: dict) -> bool:
+        """Pregunta al usuario por el navegador si autoriza una acción."""
+        nonlocal pending
+        pending = loop.create_future()
+        await ws.send_text(json.dumps({
+            "type": "confirm",
+            "tool": tool_name,
+            "args": args,
+            "question": f"¿Autorizas ejecutar «{tool_name}»?",
+        }))
+        return await pending
+
+    def confirm(tool_name: str, args: dict) -> bool:
+        # Se llama desde el hilo del agente; hay que volver al bucle async.
+        fut = asyncio.run_coroutine_threadsafe(ask(tool_name, args), loop)
+        return bool(fut.result(timeout=180))
+
     try:
         while True:
             raw = await ws.receive_text()
             data = json.loads(raw)
+
+            # Respuesta del usuario a una confirmación pendiente.
+            if "confirm" in data and pending is not None and not pending.done():
+                pending.set_result(bool(data["confirm"]))
+                continue
+
             message = data.get("message", "")
             if not message:
                 continue
             history.append({"role": "user", "content": message})
-            text, mime, audio = agent.respond(history)
+            await ws.send_text(json.dumps({"type": "thinking"}))
+            text, mime, audio = await asyncio.to_thread(agent.respond, history, confirm)
             history.append({"role": "assistant", "content": text})
             await ws.send_text(json.dumps(_encode(text, mime, audio)))
     except WebSocketDisconnect:

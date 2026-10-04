@@ -26,6 +26,19 @@ class Tool:
     parameters: dict
     func: Callable[..., str]
     dangerous: bool = False
+    # Permite decidir si ESTA llamada concreta requiere confirmación, según sus
+    # argumentos (p. ej. run_shell solo si el comando es peligroso).
+    dangerous_for: Callable[[dict], bool] | None = None
+
+    def needs_confirmation(self, args: dict) -> bool:
+        if self.dangerous:
+            return True
+        if self.dangerous_for is not None:
+            try:
+                return bool(self.dangerous_for(args))
+            except Exception:  # noqa: BLE001
+                return True
+        return False
 
     def schema(self) -> dict:
         return {
@@ -38,6 +51,35 @@ class Tool:
         }
 
 
+# Comandos que, incluso permitidos, son destructivos y deben confirmarse siempre.
+DANGEROUS_COMMANDS = {
+    "rm", "rmdir", "sudo", "su", "mkfs", "dd", "shutdown", "reboot", "kill",
+    "killall", "chmod", "chown", "launchctl", "diskutil", "mv", "truncate",
+}
+
+
+def _is_dangerous_command(argv: list[str]) -> bool:
+    if not argv:
+        return False
+    base = argv[0].split("/")[-1]
+    if base in DANGEROUS_COMMANDS:
+        return True
+    # Pipes y redirecciones que borran datos.
+    joined = " ".join(argv)
+    return any(tok in joined for tok in ("> ", "rm -rf", "sudo "))
+
+
+def _shell_needs_confirmation(args: dict) -> bool:
+    """¿Hay que pedir permiso para este comando de shell?"""
+    if config.SHELL_MODE == "confirm":
+        return True
+    try:
+        argv = shlex.split(args.get("command", ""))
+    except ValueError:
+        return True
+    return _is_dangerous_command(argv)
+
+
 def _run_shell(command: str) -> str:
     try:
         argv = shlex.split(command)
@@ -45,11 +87,18 @@ def _run_shell(command: str) -> str:
         return f"Comando inválido: {exc}"
     if not argv:
         return "Comando vacío."
-    if argv[0] not in config.SHELL_ALLOWLIST:
+
+    base = argv[0].split("/")[-1]
+    allowed = set(config.SHELL_ALLOWLIST) | set(config.SHELL_EXTRA_ALLOWED)
+    mode = config.SHELL_MODE
+
+    if mode == "allowlist" and base not in allowed:
         return (
-            f"El comando '{argv[0]}' no está en la allowlist. "
-            f"Amplíala en config.py si confías en él."
+            f"El comando '{base}' no está en la allowlist. "
+            f"Añádelo a JARVIS_SHELL_EXTRA_ALLOWED en .env, "
+            f"o usa JARVIS_SHELL_MODE=confirm para permitir cualquiera con permiso."
         )
+
     try:
         proc = subprocess.run(argv, capture_output=True, text=True, timeout=60)
     except Exception as exc:  # noqa: BLE001
@@ -118,13 +167,14 @@ def build_tools() -> list[Tool]:
     return [
         Tool(
             name="run_shell",
-            description="Ejecuta un comando de shell permitido en el ordenador del usuario.",
+            description="Ejecuta un comando de shell en el ordenador del usuario.",
             parameters={
                 "type": "object",
                 "properties": {"command": {"type": "string", "description": "Comando a ejecutar"}},
                 "required": ["command"],
             },
             func=_run_shell,
+            dangerous_for=_shell_needs_confirmation,
         ),
         Tool(
             name="read_file",

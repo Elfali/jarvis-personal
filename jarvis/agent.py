@@ -62,7 +62,7 @@ class Agent:
         tool = self.tools.get(name)
         if tool is None:
             return f"Herramienta desconocida: {name}"
-        if tool.dangerous:
+        if tool.needs_confirmation(args):
             if confirm is None or not confirm(name, args):
                 return "El usuario no autorizó esa acción."
         try:
