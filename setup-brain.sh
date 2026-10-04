@@ -6,11 +6,11 @@ set -uo pipefail
 cd "$(dirname "$0")"
 
 # Lee el modelo y la URL del .env (o usa valores por defecto).
-MODEL="llama3.1"
+MODEL="llama3.2"
 if [ -f .env ]; then
   # shellcheck disable=SC1091
   MODEL="$(grep -E '^JARVIS_BRAIN_MODEL=' .env | tail -1 | cut -d= -f2- | tr -d '"'"'"' ')"
-  [ -z "$MODEL" ] && MODEL="llama3.1"
+  [ -z "$MODEL" ] && MODEL="llama3.2"
 fi
 
 echo "==> Cerebro de JARVIS: Ollama + modelo '$MODEL'"

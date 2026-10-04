@@ -92,10 +92,18 @@ class Brain:
         return headers
 
     def _chat_openai(self, messages: list[dict], tools: list[dict] | None) -> dict:
-        payload: dict[str, Any] = {"model": self.model, "messages": messages}
+        payload: dict[str, Any] = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": config.BRAIN_TEMPERATURE,
+            "max_tokens": config.BRAIN_MAX_TOKENS,
+        }
         if tools:
             payload["tools"] = tools
             payload["tool_choice"] = "auto"
+        # Mantiene el modelo cargado en memoria (evita el retraso de recarga).
+        if self.provider == "ollama":
+            payload["keep_alive"] = config.OLLAMA_KEEP_ALIVE
         try:
             resp = httpx.post(
                 f"{self.base_url}/chat/completions",

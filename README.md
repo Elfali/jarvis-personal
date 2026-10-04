@@ -109,6 +109,28 @@ JARVIS_BRAIN_API_KEY=tu_clave
 JARVIS_BRAIN_PROVIDER=claude_code
 ```
 
+## Hacerlo más rápido
+
+Si JARVIS tarda en pensar o hablar, estos ajustes en `.env` ayudan mucho:
+
+| Ajuste | Valor | Efecto |
+|---|---|---|
+| `JARVIS_BRAIN_MODEL` | `llama3.2` | Modelo ligero: piensa en segundos |
+| `JARVIS_BRAIN_MAX_TOKENS` | `160` | Respuestas cortas = habla menos |
+| `JARVIS_OLLAMA_KEEP_ALIVE` | `30m` | Mantiene el modelo cargado (sin retraso inicial) |
+| `JARVIS_VOICE_RATE` | `-4%` | Voz un poco más ágil |
+
+Con Ollama, descarga el modelo ligero una vez:
+
+```bash
+ollama pull llama3.2
+```
+
+La mayor mejora viene de **respuestas cortas** (ya activadas): JARVIS responde
+en 1 o 2 frases, así piensa y habla mucho menos tiempo. La opción más rápida de
+todas es usar una **API en la nube** (Groq responde en menos de un segundo; ver
+"Elegir el cerebro").
+
 ## Si algo no funciona
 
 Ejecuta el diagnóstico, que te dice qué falta y cómo arreglarlo:

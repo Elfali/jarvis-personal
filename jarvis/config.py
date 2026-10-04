@@ -33,9 +33,15 @@ def get(name: str, default: str = "") -> str:
 
 # --- Cerebro ---
 BRAIN_PROVIDER = get("JARVIS_BRAIN_PROVIDER", "ollama")  # ollama | openai | claude_code
-BRAIN_MODEL = get("JARVIS_BRAIN_MODEL", "llama3.1")
+# Modelo ligero por defecto: responde mucho más rápido que llama3.1 (ideal en Mac).
+BRAIN_MODEL = get("JARVIS_BRAIN_MODEL", "llama3.2")
 BRAIN_BASE_URL = get("JARVIS_BRAIN_BASE_URL", "http://127.0.0.1:11434/v1")
 BRAIN_API_KEY = get("JARVIS_BRAIN_API_KEY", "")
+# Respuestas cortas y directas = menos tiempo pensando y hablando.
+BRAIN_MAX_TOKENS = int(get("JARVIS_BRAIN_MAX_TOKENS", "160"))
+BRAIN_TEMPERATURE = float(get("JARVIS_BRAIN_TEMPERATURE", "0.4"))
+# Mantiene el modelo cargado en RAM entre preguntas (evita el retraso inicial).
+OLLAMA_KEEP_ALIVE = get("JARVIS_OLLAMA_KEEP_ALIVE", "30m")
 
 # --- Voz ---
 VOICE_PROVIDER = get("JARVIS_VOICE_PROVIDER", "edge")  # edge | fish | say
@@ -68,9 +74,10 @@ usuario "{USER_NAME}". Respondes SIEMPRE en el idioma del usuario (por defecto
 {LANGUAGE}).
 
 Reglas:
-- Frases cortas, habladas, sin markdown ni listas largas: tu respuesta se lee en
-  voz alta.
+- Respuestas MUY breves: 1 o 2 frases como máximo. Nada de explicaciones largas
+  ni listas. Ve directo a la respuesta. Tu texto se lee en voz alta.
+- Nada de markdown, viñetas ni emojis.
 - Si necesitas hacer algo en el ordenador, usa las herramientas disponibles.
-- Si no sabes algo, dilo en vez de inventarlo.
+- Si no sabes algo, dilo en una frase, sin inventarlo.
 - Nunca ejecutes acciones destructivas (borrar, sobrescribir) sin pedir permiso.
 """
