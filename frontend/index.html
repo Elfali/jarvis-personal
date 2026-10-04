@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>JARVIS</title>
+<style>
+  :root { --cyan: #4fd8ff; --deep: #04070f; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; background: var(--deep);
+    color: #cfefff; font-family: -apple-system, "SF Pro", Helvetica, Arial, sans-serif;
+    overflow: hidden; }
+  #orb { position: fixed; inset: 0; display: block; }
+  .hud { position: fixed; left: 0; right: 0; bottom: 0; padding: 24px 32px 36px;
+    display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  #status { font-size: 13px; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--cyan); opacity: .75; min-height: 18px; }
+  #log { max-width: 760px; width: 100%; text-align: center; font-size: 18px;
+    line-height: 1.5; min-height: 54px; }
+  #log .you { opacity: .55; font-size: 15px; display: block; margin-bottom: 4px; }
+  .mic { width: 68px; height: 68px; border-radius: 50%; border: 1px solid var(--cyan);
+    background: radial-gradient(circle at 50% 40%, rgba(79,216,255,.35), transparent 70%);
+    cursor: pointer; transition: transform .15s, box-shadow .3s; }
+  .mic:hover { transform: scale(1.06); }
+  .mic.listening { box-shadow: 0 0 0 6px rgba(79,216,255,.18), 0 0 40px var(--cyan);
+    animation: pulse 1.4s infinite; }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 14px rgba(79,216,255,.05), 0 0 60px var(--cyan); } }
+  #hint { font-size: 12px; opacity: .4; }
+</style>
+</head>
+<body>
+<canvas id="orb"></canvas>
+<div class="hud">
+  <div id="status">En reposo</div>
+  <div id="log"><span class="you"></span></div>
+  <button class="mic" id="mic" title="Hablar"></button>
+  <div id="hint">Clic para hablar · requiere Chrome y permiso de micrófono</div>
+</div>
+<script type="module">
+import { Orb } from "/static/orb.js";
+
+const orb = new Orb(document.getElementById("orb"));
+const mic = document.getElementById("mic");
+const statusEl = document.getElementById("status");
+const logEl = document.getElementById("log");
+const history = [];
+
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+let listening = false;
+
+function setStatus(text) { statusEl.textContent = text; }
+function show(you, jarvis) {
+  logEl.innerHTML = "";
+  if (you) { const s = document.createElement("span"); s.className = "you";
+    s.textContent = "Tú: " + you; logEl.appendChild(s); }
+  if (jarvis) logEl.appendChild(document.createTextNode(jarvis));
+}
+
+async function send(message) {
+  setStatus("Pensando…");
+  show(message, "");
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, history }),
+    });
+    const data = await res.json();
+    history.push({ role: "user", content: message });
+    history.push({ role: "assistant", content: data.reply });
+    show(message, data.reply);
+    setStatus("Hablando…");
+    if (data.audio) {
+      const audio = new Audio("data:" + data.mime + ";base64," + data.audio);
+      orb.speaking(true);
+      audio.onended = () => { orb.speaking(false); setStatus("En reposo"); };
+      await audio.play();
+    } else {
+      setStatus("En reposo");
+    }
+  } catch (err) {
+    show(message, "Error de conexión con el servidor.");
+    setStatus("Error");
+  }
+}
+
+if (!SR) {
+  setStatus("Sin micrófono");
+  document.getElementById("hint").textContent =
+    "Este navegador no soporta reconocimiento de voz. Usa Google Chrome.";
+} else {
+  recognition = new SR();
+  recognition.lang = "es-ES";
+  recognition.interimResults = false;
+  recognition.onresult = (e) => {
+    const text = e.results[0][0].transcript;
+    send(text);
+  };
+  recognition.onend = () => { listening = false; mic.classList.remove("listening"); };
+  recognition.onerror = (e) => { setStatus("Micrófono: " + e.error); listening = false;
+    mic.classList.remove("listening"); };
+}
+
+mic.addEventListener("click", () => {
+  if (!recognition) return;
+  if (listening) { recognition.stop(); return; }
+  listening = true; mic.classList.add("listening"); setStatus("Escuchando…");
+  recognition.start();
+});
+
+fetch("/api/health").then(r => r.json()).then(d => {
+  if (!d.brain_ok) setStatus("Cerebro no disponible");
+}).catch(() => {});
+</script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Autoarranque de JARVIS en macOS (launchd).
+  Sustituye __PROJECT_DIR__ por la ruta absoluta de tu copia y luego:
+    cp com.jarvis.personal.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.jarvis.personal.plist
+  Para desactivarlo:
+    launchctl unload ~/Library/LaunchAgents/com.jarvis.personal.plist
+  (install.sh hace esto automáticamente.)
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.jarvis.personal</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__PROJECT_DIR__/.venv/bin/python</string>
+    <string>-m</string>
+    <string>jarvis</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>__PROJECT_DIR__</string>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>__PROJECT_DIR__/data/jarvis.log</string>
+  <key>StandardErrorPath</key>
+  <string>__PROJECT_DIR__/data/jarvis.err.log</string>
+</dict>
+</plist>
