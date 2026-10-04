@@ -131,18 +131,46 @@
 
     function send(text) { showReply("Tú: " + text); ws.send(JSON.stringify({ message: text })); }
 
-    function playAudio(b64, mime) {
-      if (!b64) return;
-      const audio = new Audio("data:" + (mime || "audio/mpeg") + ";base64," + b64);
+    // Reproduce el audio del servidor. Si el navegador lo bloquea, usa la voz
+    // del propio navegador (speechSynthesis) para no quedarse mudo.
+    function b64ToBlob(b64, mime) {
+      const bin = atob(b64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return new Blob([bytes], { type: mime || "audio/mpeg" });
+    }
+
+    function browserSpeak(text) {
+      if (!("speechSynthesis" in window)) { setStatus("en espera"); return; }
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "es-ES";
+      const es = speechSynthesis.getVoices().find(v => v.lang.startsWith("es"));
+      if (es) u.voice = es;
       setStatus("hablando…"); orb.speaking(true);
-      audio.onended = () => { orb.speaking(false); setStatus("en espera"); };
-      audio.play().catch(() => { orb.speaking(false); setStatus("en espera"); });
+      u.onend = () => { orb.speaking(false); setStatus("en espera"); };
+      speechSynthesis.speak(u);
+    }
+
+    function playAudio(b64, mime, text) {
+      if (!b64) { browserSpeak(text); return; }
+      const url = URL.createObjectURL(b64ToBlob(b64, mime));
+      const audio = new Audio(url);
+      setStatus("hablando…"); orb.speaking(true);
+      const done = () => { orb.speaking(false); setStatus("en espera"); URL.revokeObjectURL(url); };
+      audio.onended = done;
+      audio.play().then(() => {
+        warn.style.display = "none";
+      }).catch(() => {
+        // Autoplay bloqueado: mostramos un aviso y usamos la voz del navegador.
+        showWarn("🔊 Pulsa una vez en la página para activar el sonido.");
+        browserSpeak(text);
+      });
     }
 
     function handle(msg) {
       if (msg.reply) { showReply(msg.reply); setStatus("pensando…"); orb.speaking(false); }
-      if (msg.audio) playAudio(msg.audio, msg.mime);
-      else if (msg.reply) setStatus("en espera");
+      if (msg.reply) playAudio(msg.audio, msg.mime, msg.reply);
+      else setStatus("en espera");
     }
 
     // Estado inicial: ¿tiene cerebro?
