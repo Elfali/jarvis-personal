@@ -52,11 +52,36 @@ class Brain:
                 headers=self._headers(),
                 timeout=5.0,
             )
-            if resp.status_code < 500:
-                return True, f"{self.provider} responde en {self.base_url}"
-            return False, f"{self.provider} devolvió HTTP {resp.status_code}"
+            if resp.status_code >= 500:
+                return False, f"{self.provider} devolvió HTTP {resp.status_code}"
+            if self.provider == "ollama":
+                return self._health_ollama(resp)
+            return True, f"{self.provider} responde en {self.base_url}"
         except Exception as exc:  # noqa: BLE001
             return False, f"no se pudo alcanzar el cerebro ({self.provider}): {exc}"
+
+    def _health_ollama(self, models_resp) -> tuple[bool, str]:
+        """En Ollama, que el servidor responda no basta: el modelo debe estar
+        descargado. Si no lo está, avisamos con la orden exacta para traerlo."""
+        api_base = self.base_url[:-3] if self.base_url.endswith("/v1") else self.base_url
+        try:
+            tags = httpx.get(f"{api_base}/api/tags", timeout=5.0).json()
+        except Exception:  # noqa: BLE001
+            return True, f"ollama responde en {self.base_url}"
+        names = {m.get("name", "") for m in tags.get("models", [])}
+        if not names:
+            return False, (
+                f"ollama está corriendo pero no tiene ningún modelo. "
+                f"Ejecuta:  ollama pull {self.model}"
+            )
+        # Coincide "llama3.1" con "llama3.1:latest"
+        if self.model not in names and not any(n.split(":")[0] == self.model for n in names):
+            disponibles = ", ".join(sorted(names))
+            return False, (
+                f"el modelo '{self.model}' no está descargado (tienes: {disponibles}). "
+                f"Ejecuta:  ollama pull {self.model}"
+            )
+        return True, f"ollama listo con '{self.model}' en {api_base}"
 
     # --- Implementaciones ---
 

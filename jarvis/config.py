@@ -34,7 +34,7 @@ def get(name: str, default: str = "") -> str:
 # --- Cerebro ---
 BRAIN_PROVIDER = get("JARVIS_BRAIN_PROVIDER", "ollama")  # ollama | openai | claude_code
 BRAIN_MODEL = get("JARVIS_BRAIN_MODEL", "llama3.1")
-BRAIN_BASE_URL = get("JARVIS_BRAIN_BASE_URL", "http://localhost:11434/v1")
+BRAIN_BASE_URL = get("JARVIS_BRAIN_BASE_URL", "http://127.0.0.1:11434/v1")
 BRAIN_API_KEY = get("JARVIS_BRAIN_API_KEY", "")
 
 # --- Voz ---

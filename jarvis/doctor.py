@@ -6,7 +6,6 @@ Uso:  python -m jarvis.doctor      (o ./doctor.sh)
 from __future__ import annotations
 
 import shutil
-import subprocess
 
 from . import config, voice
 from .brain import Brain
@@ -19,6 +18,7 @@ WARN = "⚠️ "
 def check_brain() -> bool:
     brain = Brain()
     print(f"\n🧠 Cerebro: {brain.provider}  (modelo: {brain.model})")
+
     if brain.provider == "claude_code":
         if shutil.which("claude"):
             print(f"{OK} CLI `claude` encontrado")
@@ -27,19 +27,33 @@ def check_brain() -> bool:
         print("   Instálalo con:  npm install -g @anthropic-ai/claude-code")
         return False
 
-    ok, msg = brain.health()
-    if ok:
-        print(f"{OK} {msg}")
-        return True
-
-    print(f"{BAD} {msg}")
     if brain.provider == "ollama":
-        print("   Ollama no está corriendo. Arréglalo así:")
-        print("     1) brew install --cask ollama")
-        print("     2) Abre la app Ollama (o: ollama serve)")
-        print(f"     3) ollama pull {brain.model}")
-        print("   Alternativa sin Ollama: usa una API gratuita (ver README, sección 'Elegir el cerebro').")
-    return False
+        if shutil.which("ollama"):
+            print(f"{OK} El comando `ollama` está instalado")
+        else:
+            print(f"{BAD} Ollama no está instalado.")
+            print("   Instálalo con:  ./setup-brain.sh")
+            return False
+
+    ok, msg = brain.health()
+    if not ok:
+        print(f"{BAD} {msg}")
+        if brain.provider == "ollama":
+            print("   Arréglalo con:  ./setup-brain.sh")
+        return False
+    print(f"{OK} {msg}")
+
+    # Prueba real: pedir una respuesta de verdad (no solo ver el servidor).
+    try:
+        reply = brain.chat([{"role": "user", "content": "Di solo: ok"}])
+        text = (reply.get("content") or "").strip()
+        print(f"{OK} El cerebro respondió: {text[:60]!r}")
+        return True
+    except Exception as exc:  # noqa: BLE001
+        print(f"{BAD} El cerebro no dio respuesta: {exc}")
+        if brain.provider == "ollama":
+            print(f"   ¿Falta el modelo?  ollama pull {brain.model}")
+        return False
 
 
 def check_voice() -> bool:
@@ -53,7 +67,7 @@ def check_voice() -> bool:
     if config.VOICE_NAME.startswith("en-") and config.LANGUAGE == "es":
         print(f"{WARN}La voz es inglesa pero JARVIS habla en español: sonará mal.")
         print("   En .env pon:  JARVIS_VOICE_NAME=es-ES-AlvaroNeural")
-    print("   (en macOS puedes oírla con:  ./say-test.sh)")
+    print("   Para oírla en los altavoces:  ./say-test.sh")
     return True
 
 
@@ -68,6 +82,7 @@ def main() -> None:
         print(f"{OK} Todo listo. Arranca con:  ./start.sh")
     else:
         print(f"{WARN}Revisa los puntos marcados con {BAD} arriba.")
+        print("   ¿Cerebro en rojo? Ejecuta:  ./setup-brain.sh")
     print("=" * 56)
 
 

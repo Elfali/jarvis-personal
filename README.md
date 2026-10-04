@@ -119,7 +119,17 @@ Ejecuta el diagnóstico, que te dice qué falta y cómo arreglarlo:
 
 ### "Mi cerebro no responde"
 
-Ollama no está corriendo. Arréglalo:
+La causa más común es que **Ollama no está instalado o no tiene el modelo**.
+Arréglalo todo de una vez con:
+
+```bash
+./setup-brain.sh
+```
+
+Ese script instala Ollama, lo arranca y descarga el modelo automáticamente.
+Después comprueba con `./doctor.sh`.
+
+Si prefieres hacerlo a mano:
 
 ```bash
 brew install --cask ollama      # si no lo tienes
