@@ -15,11 +15,29 @@ fi
 
 echo "==> Cerebro de JARVIS: Ollama + modelo '$MODEL'"
 
-# 1. Homebrew
+# 1. Homebrew (o instalación manual de Ollama)
 if ! command -v brew >/dev/null; then
-  echo "❌ No tienes Homebrew. Instálalo primero desde https://brew.sh"
-  echo "   (o instala Ollama a mano desde https://ollama.com/download)"
-  exit 1
+  if command -v ollama >/dev/null; then
+    echo "✅ Ollama ya está instalado (sin Homebrew)"
+  else
+    echo "❌ No tienes Homebrew, y hace falta para instalar Ollama automáticamente."
+    echo
+    echo "Tienes dos opciones:"
+    echo
+    echo "  OPCIÓN A — Instalar Ollama a mano (rápido, recomendado):"
+    echo "     1) Abre:  https://ollama.com/download/mac"
+    echo "     2) Descarga el .dmg, ábrelo y arrastra Ollama a Aplicaciones."
+    echo "     3) Abre la app Ollama."
+    echo "     4) Vuelve aquí y ejecuta:  bash setup-brain.sh"
+    echo
+    echo "  OPCIÓN B — Instalar Homebrew (una sola línea):"
+    echo '     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+    echo "     Después:  bash setup-brain.sh"
+    echo
+    echo "  OPCIÓN C — Sin Ollama ni Homebrew: usa una API gratuita (Groq)."
+    echo "     Mira el README, sección 'Elegir el cerebro'. No requiere descargas."
+    exit 1
+  fi
 fi
 
 # 2. Ollama
