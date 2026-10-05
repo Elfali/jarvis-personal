@@ -40,6 +40,17 @@ BRAIN_API_KEY = get("JARVIS_BRAIN_API_KEY", "")
 # Respuestas cortas y directas = menos tiempo pensando y hablando.
 BRAIN_MAX_TOKENS = int(get("JARVIS_BRAIN_MAX_TOKENS", "160"))
 BRAIN_TEMPERATURE = float(get("JARVIS_BRAIN_TEMPERATURE", "0.4"))
+
+# Cuántos turnos (mensajes) de conversación recuerda. Menos historial = responde
+# antes y se centra en lo relevante. 0 desactiva el recorte.
+HISTORY_MAX_TURNS = int(get("JARVIS_HISTORY_MAX_TURNS", "10"))
+
+# Rondas máximas de herramientas por respuesta. Pocas = más rápido; suficientes
+# para encadenar un par de acciones.
+TOOL_ROUNDS = int(get("JARVIS_TOOL_ROUNDS", "4"))
+
+# Contexto del modelo. Menos = menos memoria y algo más rápido; 0 = el del modelo.
+BRAIN_NUM_CTX = int(get("JARVIS_BRAIN_NUM_CTX", "2048"))
 # Mantiene el modelo cargado en RAM entre preguntas (evita el retraso inicial).
 OLLAMA_KEEP_ALIVE = get("JARVIS_OLLAMA_KEEP_ALIVE", "30m")
 

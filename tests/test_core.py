@@ -188,6 +188,32 @@ def test_ws_confirmation_does_not_deadlock():
     print("OK ws_confirmation_does_not_deadlock")
 
 
+def test_history_trimming():
+    from jarvis import config
+    from jarvis.agent import Agent
+
+    original = config.HISTORY_MAX_TURNS
+    try:
+        config.HISTORY_MAX_TURNS = 4
+        history = [{"role": "user", "content": f"m{i}"} for i in range(10)]
+        trimmed = Agent._trim(history)
+        assert len(trimmed) == 4, trimmed
+        assert trimmed[-1]["content"] == "m9"
+        # Con el límite desactivado no se recorta nada.
+        config.HISTORY_MAX_TURNS = 0
+        assert len(Agent._trim(history)) == 10
+    finally:
+        config.HISTORY_MAX_TURNS = original
+    print("OK history_trimming")
+
+
+def test_tool_rounds_is_bounded():
+    from jarvis import config
+    assert 1 <= config.TOOL_ROUNDS <= 6, config.TOOL_ROUNDS
+    assert config.BRAIN_NUM_CTX >= 0
+    print("OK tool_rounds_bounded")
+
+
 if __name__ == "__main__":
     test_tools_registered()
     test_shell_allowlist_blocks()
@@ -196,6 +222,8 @@ if __name__ == "__main__":
     test_agent_tool_call_roundtrip()
     test_dangerous_tool_needs_confirmation()
     test_ws_confirmation_does_not_deadlock()
+    test_history_trimming()
+    test_tool_rounds_is_bounded()
     test_self_improve_reverts_on_broken_code()
     test_self_improve_applies_valid_change()
     print("\nTODAS LAS PRUEBAS PASARON")

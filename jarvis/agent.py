@@ -11,8 +11,6 @@ from . import config, voice
 from .brain import Brain, BrainError, tool_call_name_and_args
 from .tools import build_tools
 
-MAX_TOOL_ROUNDS = 6
-
 
 class Agent:
     def __init__(self) -> None:
@@ -23,15 +21,28 @@ class Agent:
     def _system(self) -> dict:
         return {"role": "system", "content": config.SYSTEM_PROMPT}
 
+    @staticmethod
+    def _trim(history: list[dict]) -> list[dict]:
+        """Recorta el historial a los últimos turnos.
+
+        Menos historial = el modelo piensa antes y se centra en lo relevante.
+        Se corta solo por turnos de usuario, para no partir una llamada a
+        herramienta de su resultado.
+        """
+        limit = config.HISTORY_MAX_TURNS
+        if limit <= 0 or len(history) <= limit:
+            return history
+        return history[-limit:]
+
     def respond(self, history: list[dict], confirm=None) -> tuple[str, str | None, bytes | None]:
         """history: lista de {role, content}. Devuelve (texto, mime, audio).
 
         `confirm(tool_name, args) -> bool` se llama antes de una herramienta
         peligrosa. Si es None, se rechazan las peligrosas.
         """
-        messages = [self._system(), *history]
+        messages = [self._system(), *self._trim(history)]
 
-        for _ in range(MAX_TOOL_ROUNDS):
+        for _ in range(config.TOOL_ROUNDS):
             try:
                 reply = self.brain.chat(messages, tools=self.schemas)
             except BrainError as exc:

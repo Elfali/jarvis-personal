@@ -104,6 +104,8 @@ class Brain:
         # Mantiene el modelo cargado en memoria (evita el retraso de recarga).
         if self.provider == "ollama":
             payload["keep_alive"] = config.OLLAMA_KEEP_ALIVE
+            if config.BRAIN_NUM_CTX > 0:
+                payload["num_ctx"] = config.BRAIN_NUM_CTX
         try:
             resp = httpx.post(
                 f"{self.base_url}/chat/completions",
