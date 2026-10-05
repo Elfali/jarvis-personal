@@ -208,16 +208,20 @@
     </div>
 
     <div class="side left">
-      <div>ENLACE <b>ESTABLE</b></div>
+      <div>ENLACE <b id="hud-link">ESTABLE</b></div>
+      <div>SEÑAL <b id="hud-signal">98%</b></div>
       <div>RUIDO <b id="hud-noise">0.00</b></div>
       <div>LATENCIA <b id="hud-lat">-- ms</b></div>
+      <div>FRECUENCIA <b id="hud-freq">--</b></div>
       <div>CANAL <b>LOCAL</b></div>
     </div>
 
     <div class="side right">
       <div>VOZ <b id="hud-voice">—</b></div>
       <div>MICRÓFONO <b id="hud-mic">INACTIVO</b></div>
-      <div>ENERGÍA <b id="hud-energy">12%</b></div>
+      <div>ENERGÍA <b id="hud-energy">0%</b></div>
+      <div>CARGA <b id="hud-load">--</b></div>
+      <div>BÚFER <b id="hud-buffer">--</b></div>
       <div>VERSIÓN <b>2.0</b></div>
     </div>
 
@@ -281,6 +285,40 @@
     }, 1000);
     document.getElementById("hud-voice").textContent = "ES-ES";
 
+    // ---------- Datos del HUD que fluctúan ----------
+    // Paseo aleatorio suave (movimiento browniano): los números se mueven poco a
+    // poco dentro de un rango, de forma natural y creíble.
+    const hud = {
+      signal: { v: 98, min: 88, max: 100, step: 0.6 },
+      noise: { v: 0.03, min: 0.01, max: 0.09, step: 0.02 },
+      latency: { v: 24, min: 12, max: 60, step: 3 },
+      freq: { v: 440, min: 420, max: 480, step: 4 },
+      load: { v: 22, min: 10, max: 80, step: 3 },
+      buffer: { v: 64, min: 32, max: 96, step: 4 },
+    };
+    const drift = (o) => {
+      o.v += (Math.random() - 0.5) * o.step * 2;
+      o.v = Math.max(o.min, Math.min(o.max, o.v));
+      return o.v;
+    };
+    function fluctuaHUD() {
+      document.getElementById("hud-signal").textContent = Math.round(drift(hud.signal)) + "%";
+      document.getElementById("hud-noise").textContent = drift(hud.noise).toFixed(2);
+      document.getElementById("hud-lat").textContent = Math.round(drift(hud.latency)) + " ms";
+      document.getElementById("hud-freq").textContent = Math.round(drift(hud.freq)) + " Hz";
+      document.getElementById("hud-load").textContent = Math.round(drift(hud.load)) + "%";
+      document.getElementById("hud-buffer").textContent = Math.round(drift(hud.buffer)) + "%";
+    }
+    setInterval(fluctuaHUD, 700);
+    fluctuaHUD();
+
+    // El estado de enlace cambia de vez en cuando para dar sensación de vida.
+    const enlaces = ["ESTABLE", "ESTABLE", "ESTABLE", "ÓPTIMO", "SINCRONIZANDO"];
+    setInterval(() => {
+      document.getElementById("hud-link").textContent =
+        enlaces[Math.floor(Math.random() * enlaces.length)];
+    }, 4200);
+
     // ---------- Audio: micro y voz -> nivel -> esfera ----------
     let audioCtx = null, micAnalyser = null, micData = null, micStream = null;
     let outAnalyser = null, outData = null;
@@ -342,7 +380,6 @@
       orb.setAudio(Math.min(1, level * 2.2));
       const pct = Math.round(Math.min(1, level * 2.2) * 100);
       document.getElementById("hud-energy").textContent = pct + "%";
-      document.getElementById("hud-noise").textContent = level.toFixed(2);
       requestAnimationFrame(audioLoop);
     })();
 
