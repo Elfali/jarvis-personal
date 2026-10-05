@@ -6,100 +6,242 @@
 <title>JARVIS</title>
 <style>
   :root {
-    --orange: #ff9a3c;
-    --orange-soft: #ffb060;
-    --bg: #0a0603;
+    --amber: #ff9a3c;
+    --amber-soft: #ffb060;
+    --amber-dim: rgba(255,154,60,.35);
+    --line: rgba(255,154,60,.28);
+    --bg: #05030a;
+    --text: #ffd9b0;
   }
   * { box-sizing: border-box; }
   html, body {
     margin: 0; height: 100%; overflow: hidden;
-    background: radial-gradient(circle at 50% 45%, #1a0f05 0%, var(--bg) 70%);
-    font-family: -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif;
-    color: var(--orange-soft);
+    background: radial-gradient(circle at 50% 45%, #140a02 0%, var(--bg) 68%, #000 100%);
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    color: var(--text);
   }
   #orb { position: fixed; inset: 0; display: block; cursor: pointer; }
 
-  .hud {
-    position: fixed; left: 0; right: 0; bottom: 0;
+  /* ---------- HUD: capa de adornos (no bloquea el ratón) ---------- */
+  .hud-layer { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
+  .frame {
+    position: absolute; inset: 14px;
+    border: 1px solid var(--line);
+    clip-path: polygon(
+      0 0, 46px 0, 46px 2px, calc(100% - 46px) 2px, calc(100% - 46px) 0, 100% 0,
+      100% 46px, calc(100% - 2px) 46px, calc(100% - 2px) calc(100% - 46px),
+      100% calc(100% - 46px), 100% 100%, calc(100% - 46px) 100%,
+      calc(100% - 46px) calc(100% - 2px), 46px calc(100% - 2px), 46px 100%, 0 100%,
+      0 calc(100% - 46px), 2px calc(100% - 46px), 2px 46px, 0 46px);
+    box-shadow: 0 0 26px rgba(255,140,60,.12) inset;
+  }
+  .corner {
+    position: absolute; width: 26px; height: 26px;
+    border-color: var(--amber); border-style: solid; border-width: 0;
+    opacity: .8;
+  }
+  .corner.tl { top: 14px; left: 14px; border-top-width: 2px; border-left-width: 2px; }
+  .corner.tr { top: 14px; right: 14px; border-top-width: 2px; border-right-width: 2px; }
+  .corner.bl { bottom: 14px; left: 14px; border-bottom-width: 2px; border-left-width: 2px; }
+  .corner.br { bottom: 14px; right: 14px; border-bottom-width: 2px; border-right-width: 2px; }
+
+  /* Barras superior e inferior */
+  .topbar, .bottombar {
+    position: absolute; left: 0; right: 0; height: 34px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 40px; font-size: 11px; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--amber-soft);
+  }
+  .topbar { top: 16px; }
+  .bottombar { bottom: 16px; }
+  .topbar .seg, .bottombar .seg {
+    display: flex; gap: 14px; align-items: center;
+  }
+  .tick {
+    width: 2px; height: 12px; background: var(--amber-dim); display: inline-block;
+  }
+  .blip {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--amber);
+    box-shadow: 0 0 10px var(--amber); display: inline-block;
+    animation: blink 1.6s ease-in-out infinite;
+  }
+  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
+
+  /* Barras de nivel decorativas */
+  .gauge { display: flex; gap: 3px; align-items: flex-end; height: 16px; }
+  .gauge i {
+    width: 3px; background: var(--amber-dim); height: 6px;
+    animation: eq 1.2s ease-in-out infinite;
+  }
+  .gauge i:nth-child(2) { animation-delay: .15s; }
+  .gauge i:nth-child(3) { animation-delay: .3s; }
+  .gauge i:nth-child(4) { animation-delay: .45s; }
+  .gauge i:nth-child(5) { animation-delay: .6s; }
+  @keyframes eq { 0%,100% { height: 6px; } 50% { height: 15px; background: var(--amber); } }
+
+  /* Paneles técnicos laterales */
+  .side {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    font-size: 10px; letter-spacing: 1.5px; color: var(--amber-dim);
+    text-transform: uppercase; line-height: 1.9;
+  }
+  .side.left { left: 40px; }
+  .side.right { right: 40px; text-align: right; }
+  .side b { color: var(--amber-soft); font-weight: 500; }
+
+  /* ---------- Centro: estado + respuesta ---------- */
+  .center {
+    position: fixed; inset: 0; z-index: 6; pointer-events: none;
     display: flex; flex-direction: column; align-items: center;
-    gap: 14px; padding: 24px; pointer-events: none;
+    justify-content: flex-end; padding-bottom: 120px; gap: 16px;
   }
   #status {
-    font-size: 13px; letter-spacing: 3px; text-transform: uppercase;
-    color: var(--orange); opacity: .85; min-height: 16px;
-    text-shadow: 0 0 12px rgba(255,154,60,.6);
+    font-size: 12px; letter-spacing: 6px; text-transform: uppercase;
+    color: var(--amber); opacity: .9;
+    text-shadow: 0 0 14px rgba(255,154,60,.7);
   }
   #reply {
-    max-width: 720px; text-align: center; font-size: 17px; line-height: 1.5;
-    color: #ffd9b0; opacity: 0; transition: opacity .35s; min-height: 24px;
-    text-shadow: 0 0 18px rgba(255,140,60,.35);
+    max-width: 680px; text-align: center; font-size: 16px; line-height: 1.6;
+    color: var(--text); opacity: 0; transition: opacity .35s;
+    text-shadow: 0 0 20px rgba(255,140,60,.4);
+    font-family: -apple-system, "SF Pro Display", sans-serif;
   }
   #reply.show { opacity: 1; }
 
+  /* ---------- Controles ---------- */
+  .controls {
+    position: fixed; left: 0; right: 0; bottom: 44px; z-index: 7;
+    display: flex; align-items: center; justify-content: center; gap: 18px;
+  }
   #mic {
-    pointer-events: auto; width: 74px; height: 74px; border-radius: 50%;
-    border: 2px solid var(--orange); background: rgba(255,140,60,.08);
-    color: var(--orange); font-size: 30px; cursor: pointer;
+    width: 72px; height: 72px; border-radius: 50%;
+    border: 2px solid var(--amber); background: rgba(255,140,60,.06);
+    color: var(--amber); font-size: 28px; cursor: pointer;
     display: grid; place-items: center;
-    box-shadow: 0 0 0 0 rgba(255,154,60,.5), 0 0 28px rgba(255,140,60,.35) inset;
+    box-shadow: 0 0 0 0 rgba(255,154,60,.5), 0 0 30px rgba(255,140,60,.3) inset;
     transition: transform .15s, box-shadow .25s, background .25s;
   }
   #mic:hover { transform: scale(1.08); background: rgba(255,140,60,.16);
-    box-shadow: 0 0 34px rgba(255,154,60,.55), 0 0 28px rgba(255,140,60,.4) inset; }
+    box-shadow: 0 0 40px rgba(255,154,60,.6), 0 0 30px rgba(255,140,60,.4) inset; }
   #mic.listening {
     background: rgba(255,154,60,.3);
     animation: pulse 1.1s ease-in-out infinite;
   }
-  #test {
-    pointer-events: auto; padding: 8px 16px; border-radius: 20px;
-    border: 1px solid var(--orange); background: rgba(255,140,60,.08);
-    color: var(--orange-soft); font-size: 13px; cursor: pointer;
-  }
-  #test:hover { background: rgba(255,140,60,.18); }
   @keyframes pulse {
     0%,100% { box-shadow: 0 0 0 0 rgba(255,154,60,.55), 0 0 30px rgba(255,140,60,.5) inset; }
-    50% { box-shadow: 0 0 0 22px rgba(255,154,60,0), 0 0 30px rgba(255,140,60,.5) inset; }
+    50% { box-shadow: 0 0 0 24px rgba(255,154,60,0), 0 0 30px rgba(255,140,60,.5) inset; }
   }
+  .ghost {
+    padding: 8px 16px; border-radius: 20px; cursor: pointer;
+    border: 1px solid var(--line); background: rgba(255,140,60,.05);
+    color: var(--amber-soft); font-size: 12px; letter-spacing: 1px;
+    font-family: inherit; text-transform: uppercase;
+  }
+  .ghost:hover { background: rgba(255,140,60,.16); }
   #hint {
-    font-size: 12px; letter-spacing: 1px; color: rgba(255,176,96,.5);
-    pointer-events: none;
+    position: fixed; left: 0; right: 0; bottom: 18px; text-align: center;
+    font-size: 10px; letter-spacing: 2px; color: rgba(255,176,96,.4);
+    text-transform: uppercase; z-index: 7;
   }
   #warn {
-    position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
-    background: rgba(120,40,0,.55); border: 1px solid var(--orange);
-    color: #ffd9b0; padding: 10px 16px; border-radius: 10px; font-size: 13px;
-    display: none; max-width: 90vw; text-align: center;
+    position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+    background: rgba(120,40,0,.6); border: 1px solid var(--amber);
+    color: var(--text); padding: 10px 16px; border-radius: 8px; font-size: 12px;
+    display: none; max-width: 90vw; text-align: center; z-index: 20;
   }
+
+  /* ---------- Ventana de permiso ---------- */
   #confirm {
     position: fixed; inset: 0; display: none; place-items: center;
-    background: rgba(5,2,0,.72); backdrop-filter: blur(3px); z-index: 10;
+    background: rgba(5,2,0,.75); backdrop-filter: blur(4px); z-index: 30;
   }
   #confirm.show { display: grid; }
   #confirm .box {
-    max-width: 560px; width: 90vw; padding: 26px 28px; border-radius: 16px;
-    background: rgba(26,15,5,.96); border: 1px solid var(--orange);
-    box-shadow: 0 0 40px rgba(255,140,60,.35); text-align: center;
+    max-width: 560px; width: 90vw; padding: 26px 28px;
+    background: rgba(20,11,3,.97); border: 1px solid var(--amber);
+    box-shadow: 0 0 44px rgba(255,140,60,.4); text-align: center;
+    clip-path: polygon(0 14px, 14px 0, 100% 0, 100% calc(100% - 14px),
+      calc(100% - 14px) 100%, 0 100%);
   }
-  #confirm h2 { margin: 0 0 14px; font-size: 15px; letter-spacing: 2px;
-    text-transform: uppercase; color: var(--orange); }
+  #confirm h2 { margin: 0 0 14px; font-size: 13px; letter-spacing: 4px;
+    text-transform: uppercase; color: var(--amber); }
   #confirm pre {
-    margin: 0 0 20px; padding: 14px; border-radius: 10px; text-align: left;
-    background: rgba(0,0,0,.5); border: 1px solid rgba(255,140,60,.35);
-    color: #ffd9b0; font-size: 13px; white-space: pre-wrap; word-break: break-word;
-    max-height: 200px; overflow: auto;
+    margin: 0 0 20px; padding: 14px; text-align: left;
+    background: rgba(0,0,0,.55); border: 1px solid var(--line);
+    color: var(--text); font-size: 13px; white-space: pre-wrap;
+    word-break: break-word; max-height: 200px; overflow: auto;
+    font-family: "SF Mono", Menlo, monospace;
   }
   #confirm .row { display: flex; gap: 12px; justify-content: center; }
   #confirm button {
-    padding: 10px 26px; border-radius: 22px; font-size: 14px; cursor: pointer;
-    border: 1px solid var(--orange);
+    padding: 10px 26px; font-size: 13px; cursor: pointer; font-family: inherit;
+    border: 1px solid var(--amber); letter-spacing: 1px; text-transform: uppercase;
   }
-  #confirm .no { background: transparent; color: var(--orange-soft); }
-  #confirm .yes { background: var(--orange); color: #1a0f05; font-weight: 600; }
+  #confirm .no { background: transparent; color: var(--amber-soft); }
+  #confirm .yes { background: var(--amber); color: #140a02; font-weight: 700; }
   #confirm button:hover { filter: brightness(1.15); }
+
+  @media (max-width: 720px) {
+    .side { display: none; }
+    .topbar, .bottombar { padding: 0 22px; font-size: 9px; }
+  }
 </style>
 </head>
 <body>
   <canvas id="orb"></canvas>
+
+  <!-- Capa HUD decorativa -->
+  <div class="hud-layer">
+    <div class="frame"></div>
+    <div class="corner tl"></div><div class="corner tr"></div>
+    <div class="corner bl"></div><div class="corner br"></div>
+
+    <div class="topbar">
+      <div class="seg">
+        <span class="blip"></span><span>JARVIS</span>
+        <span class="tick"></span><span id="hud-clock">--:--:--</span>
+      </div>
+      <div class="seg">
+        <span>NÚCLEO</span><span id="hud-state">EN ESPERA</span>
+        <span class="gauge"><i></i><i></i><i></i><i></i><i></i></span>
+      </div>
+    </div>
+
+    <div class="side left">
+      <div>ENLACE <b>ESTABLE</b></div>
+      <div>RUIDO <b id="hud-noise">0.00</b></div>
+      <div>LATENCIA <b id="hud-lat">-- ms</b></div>
+      <div>CANAL <b>LOCAL</b></div>
+    </div>
+
+    <div class="side right">
+      <div>VOZ <b id="hud-voice">—</b></div>
+      <div>MICRÓFONO <b id="hud-mic">INACTIVO</b></div>
+      <div>ENERGÍA <b id="hud-energy">12%</b></div>
+      <div>VERSIÓN <b>2.0</b></div>
+    </div>
+
+    <div class="bottombar">
+      <div class="seg"><span id="hud-left">SISTEMAS OPERATIVOS</span></div>
+      <div class="seg">
+        <span class="tick"></span><span>◈</span>
+        <span class="gauge"><i></i><i></i><i></i><i></i><i></i></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Centro -->
+  <div class="center">
+    <div id="status">en espera</div>
+    <div id="reply"></div>
+  </div>
+
+  <!-- Controles -->
+  <div class="controls">
+    <button id="mic" title="Hablar">🎙️</button>
+    <button class="ghost" id="test" title="Probar sonido">🔊 probar voz</button>
+  </div>
+  <div id="hint">pasa el ratón sobre el núcleo · clic para un pulso</div>
 
   <div id="warn"></div>
 
@@ -114,14 +256,6 @@
     </div>
   </div>
 
-  <div class="hud">
-    <div id="status">en espera</div>
-    <div id="reply"></div>
-    <button id="mic" title="Hablar">🎙️</button>
-    <div id="hint">pasa el ratón sobre el orbe · clic en el orbe para un pulso</div>
-    <button id="test" title="Probar sonido">🔊 probar voz</button>
-  </div>
-
   <script type="module">
     import { Orb } from "/static/orb.js";
 
@@ -131,11 +265,88 @@
     const mic = document.getElementById("mic");
     const warn = document.getElementById("warn");
 
-    function setStatus(s) { statusEl.textContent = s; }
+    function setStatus(s) {
+      statusEl.textContent = s;
+      document.getElementById("hud-state").textContent = s.toUpperCase();
+    }
     function showReply(t) { replyEl.textContent = t; replyEl.classList.add("show"); }
     function showWarn(t) { warn.textContent = t; warn.style.display = "block"; }
 
-    // --- Reconocimiento de voz (Chrome) ---
+    // ---------- Reloj y telemetría del HUD ----------
+    setInterval(() => {
+      const d = new Date();
+      const p = (n) => String(n).padStart(2, "0");
+      document.getElementById("hud-clock").textContent =
+        `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+    }, 1000);
+    document.getElementById("hud-voice").textContent = "ES-ES";
+
+    // ---------- Audio: micro y voz -> nivel -> esfera ----------
+    let audioCtx = null, micAnalyser = null, micData = null, micStream = null;
+    let outAnalyser = null, outData = null;
+    let level = 0;
+
+    function ensureAudioCtx() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      return audioCtx;
+    }
+
+    // Conecta un <audio> al analizador para que la voz de JARVIS mueva la esfera.
+    function attachOutput(audioEl) {
+      try {
+        const ctx = ensureAudioCtx();
+        const src = ctx.createMediaElementSource(audioEl);
+        outAnalyser = ctx.createAnalyser();
+        outAnalyser.fftSize = 256;
+        outData = new Uint8Array(outAnalyser.frequencyBinCount);
+        src.connect(outAnalyser);
+        outAnalyser.connect(ctx.destination);
+      } catch (e) { /* si falla, la esfera usa solo el estado */ }
+    }
+
+    async function startMicAnalyser() {
+      try {
+        ensureAudioCtx();
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const src = audioCtx.createMediaStreamSource(micStream);
+        micAnalyser = audioCtx.createAnalyser();
+        micAnalyser.fftSize = 256;
+        micData = new Uint8Array(micAnalyser.frequencyBinCount);
+        src.connect(micAnalyser);
+      } catch (e) { micAnalyser = null; }
+    }
+
+    function stopMicAnalyser() {
+      if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+      micAnalyser = null;
+    }
+
+    // Bucle único que calcula el nivel de audio y alimenta la esfera.
+    (function audioLoop() {
+      let v = 0;
+      if (micAnalyser && micData) {
+        micAnalyser.getByteFrequencyData(micData);
+        let s = 0;
+        for (let i = 0; i < micData.length; i++) s += micData[i];
+        v = (s / micData.length) / 255;
+      } else if (outAnalyser && outData) {
+        outAnalyser.getByteFrequencyData(outData);
+        let s = 0;
+        for (let i = 0; i < outData.length; i++) s += outData[i];
+        v = (s / outData.length) / 255;
+      }
+      level += (v - level) * 0.3;
+      orb.setAudio(Math.min(1, level * 2.2));
+      const pct = Math.round(Math.min(1, level * 2.2) * 100);
+      document.getElementById("hud-energy").textContent = pct + "%";
+      document.getElementById("hud-noise").textContent = level.toFixed(2);
+      requestAnimationFrame(audioLoop);
+    })();
+
+    // ---------- Reconocimiento de voz (Chrome) ----------
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recog = null, listening = false;
     if (SR) {
@@ -143,8 +354,18 @@
       recog.lang = "es-ES";
       recog.interimResults = true;
       recog.continuous = false;
-      recog.onstart = () => { listening = true; mic.classList.add("listening"); setStatus("escuchando…"); };
-      recog.onend = () => { listening = false; mic.classList.remove("listening"); setStatus("en espera"); };
+      recog.onstart = () => {
+        listening = true; mic.classList.add("listening");
+        setStatus("escuchando…"); orb.setState("listening");
+        document.getElementById("hud-mic").textContent = "ACTIVO";
+        startMicAnalyser();
+      };
+      recog.onend = () => {
+        listening = false; mic.classList.remove("listening");
+        setStatus("en espera"); orb.setState("idle");
+        document.getElementById("hud-mic").textContent = "INACTIVO";
+        stopMicAnalyser();
+      };
       recog.onerror = (e) => { setStatus("error de micrófono: " + e.error); };
       recog.onresult = (e) => {
         let final = "";
@@ -162,8 +383,7 @@
       if (listening) recog.stop(); else recog.start();
     });
 
-    // Botón de prueba: pide audio al servidor y lo reproduce. Sirve para
-    // comprobar si el problema es de sonido o de la respuesta.
+    // ---------- Botón de prueba de voz ----------
     document.getElementById("test").addEventListener("click", async () => {
       try {
         const r = await fetch("/api/chat", {
@@ -180,7 +400,7 @@
       }
     });
 
-    // --- Envío al servidor por WebSocket ---
+    // ---------- WebSocket ----------
     let ws = null;
     function connect() {
       ws = new WebSocket(`ws://${location.host}/ws`);
@@ -193,8 +413,7 @@
 
     function send(text) { showReply("Tú: " + text); ws.send(JSON.stringify({ message: text })); }
 
-    // Reproduce el audio del servidor. Si el navegador lo bloquea, usa la voz
-    // del propio navegador (speechSynthesis) para no quedarse mudo.
+    // ---------- Audio del servidor -> reproducción ----------
     function b64ToBlob(b64, mime) {
       const bin = atob(b64);
       const bytes = new Uint8Array(bin.length);
@@ -208,8 +427,8 @@
       u.lang = "es-ES";
       const es = speechSynthesis.getVoices().find(v => v.lang.startsWith("es"));
       if (es) u.voice = es;
-      setStatus("hablando…"); orb.speaking(true);
-      u.onend = () => { orb.speaking(false); setStatus("en espera"); };
+      setStatus("hablando…"); orb.setState("speaking");
+      u.onend = () => { orb.setState("idle"); setStatus("en espera"); };
       speechSynthesis.speak(u);
     }
 
@@ -217,34 +436,34 @@
       if (!b64) { browserSpeak(text); return; }
       const url = URL.createObjectURL(b64ToBlob(b64, mime));
       const audio = new Audio(url);
-      setStatus("hablando…"); orb.speaking(true);
-      const done = () => { orb.speaking(false); setStatus("en espera"); URL.revokeObjectURL(url); };
+      setStatus("hablando…"); orb.setState("speaking");
+      const done = () => { orb.setState("idle"); setStatus("en espera"); URL.revokeObjectURL(url); };
       audio.onended = done;
+      // Conecta la salida al analizador para que la voz mueva la esfera.
+      if (!outAnalyser) attachOutput(audio);
       audio.play().then(() => {
         warn.style.display = "none";
       }).catch(() => {
-        // Autoplay bloqueado: mostramos un aviso y usamos la voz del navegador.
         showWarn("🔊 Pulsa una vez en la página para activar el sonido.");
         browserSpeak(text);
       });
     }
 
     function handle(msg) {
-      if (msg.type === "thinking") { setStatus("pensando…"); orb.speaking(false); return; }
+      if (msg.type === "thinking") { setStatus("pensando…"); orb.setState("thinking"); return; }
       if (msg.type === "confirm") { askConfirm(msg); return; }
-      if (msg.reply) { showReply(msg.reply); setStatus("pensando…"); orb.speaking(false); }
+      if (msg.reply) { showReply(msg.reply); setStatus("pensando…"); orb.setState("thinking"); }
       if (msg.reply) playAudio(msg.audio, msg.mime, msg.reply);
       else setStatus("en espera");
     }
 
-    // Pide permiso al usuario antes de ejecutar una acción, de una en una,
-    // en una ventana propia de JARVIS con el comando exacto.
+    // ---------- Permiso (de una en una) ----------
     const confirmBox = document.getElementById("confirm");
     const confirmDetail = document.getElementById("confirm-detail");
     let confirmOpen = false;
 
     function askConfirm(msg) {
-      if (confirmOpen) return;          // ya hay una petición en pantalla
+      if (confirmOpen) return;
       confirmOpen = true;
       const detalle = msg.args && msg.args.command ? msg.args.command
         : JSON.stringify(msg.args || {}, null, 2);
@@ -264,7 +483,7 @@
       document.getElementById("confirm-no").onclick = () => responder(false);
     }
 
-    // Estado inicial: ¿tiene cerebro?
+    // ---------- Estado inicial ----------
     fetch("/api/health").then(r => r.json()).then(h => {
       if (!h.brain_ok) showWarn("⚠️ El cerebro no responde. Ejecuta: bash setup-brain.sh");
     }).catch(() => {});
