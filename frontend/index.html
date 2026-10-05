@@ -108,9 +108,38 @@
   }
   #reply.show { opacity: 1; }
 
+  /* ---------- Barra para escribir ---------- */
+  #composer {
+    position: fixed; left: 0; right: 0; bottom: 42px; z-index: 8;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 0 40px;
+  }
+  #text {
+    width: min(560px, 68vw); padding: 11px 18px;
+    background: rgba(255,140,60,.05); border: 1px solid var(--line);
+    color: var(--text); font-family: inherit; font-size: 14px;
+    letter-spacing: .5px; outline: none;
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px),
+      calc(100% - 10px) 100%, 0 100%, 0 10px);
+  }
+  #text::placeholder { color: rgba(255,176,96,.35); }
+  #text:focus {
+    border-color: var(--amber); background: rgba(255,140,60,.1);
+    box-shadow: 0 0 22px rgba(255,140,60,.25);
+  }
+  #send {
+    padding: 11px 22px; cursor: pointer; font-family: inherit; font-size: 13px;
+    letter-spacing: 2px; text-transform: uppercase;
+    border: 1px solid var(--amber); background: var(--amber); color: #140a02;
+    font-weight: 700;
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px),
+      calc(100% - 8px) 100%, 0 100%, 0 8px);
+  }
+  #send:hover { filter: brightness(1.12); }
+
   /* ---------- Pie ---------- */
   #hint {
-    position: fixed; left: 0; right: 0; bottom: 18px; text-align: center;
+    position: fixed; left: 0; right: 0; bottom: 16px; text-align: center;
     font-size: 10px; letter-spacing: 2px; color: rgba(255,176,96,.4);
     text-transform: uppercase; z-index: 7;
   }
@@ -211,8 +240,12 @@
     <div id="reply"></div>
   </div>
 
-  <!-- Controles -->
-  <div id="hint">clic en el núcleo para hablar · pasa el ratón para interactuar</div>
+  <!-- Barra para escribir (alternativa a la voz) -->
+  <form id="composer" autocomplete="off">
+    <input id="text" type="text" placeholder="Escribe a JARVIS…" />
+    <button id="send" type="submit">Enviar</button>
+  </form>
+  <div id="hint">clic en el núcleo para hablar · o escribe abajo</div>
 
   <div id="warn"></div>
 
@@ -398,7 +431,22 @@
     }
     connect();
 
-    function send(text) { showReply("Tú: " + text); ws.send(JSON.stringify({ message: text })); }
+    function send(text) {
+      if (!text) return;
+      showReply("Tú: " + text);
+      if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ message: text }));
+      else showWarn("Sin conexión con JARVIS; reintentando…");
+    }
+
+    // ---------- Barra para escribir ----------
+    const textInput = document.getElementById("text");
+    document.getElementById("composer").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const value = textInput.value.trim();
+      if (!value) return;
+      textInput.value = "";
+      send(value);
+    });
 
     // ---------- Audio del servidor -> reproducción ----------
     function b64ToBlob(b64, mime) {
