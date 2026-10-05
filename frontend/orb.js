@@ -53,6 +53,9 @@ export class Orb {
     this.hover = 0;
     this.hoverTarget = 0;
     this.pulse = 0;
+    this.listen = 0;        // brillo extra cuando escucha
+    this.listenTarget = 0;
+    this.onClick = null;    // el holograma actúa de botón
     this.mouse = { x: 0, y: 0, inside: false };
 
     this._resize();
@@ -86,7 +89,10 @@ export class Orb {
       this.mouse.inside = false;
       this.hoverTarget = 0;
     });
-    this.canvas.addEventListener("click", () => { this.pulse = 1; });
+    this.canvas.addEventListener("click", () => {
+      this.pulse = 1;
+      if (typeof this.onClick === "function") this.onClick();
+    });
     window.addEventListener("touchmove", (e) => {
       const t = e.touches[0];
       if (!t) return;
@@ -144,6 +150,7 @@ export class Orb {
 
   setState(state) {
     this.state = state in BASE_ENERGY ? state : "idle";
+    this.listenTarget = state === "listening" ? 1 : 0;
   }
 
   // Compatibilidad con el código anterior.
@@ -159,12 +166,13 @@ export class Orb {
     this.audioS += (this.audio - this.audioS) * 0.25;
     this.energy += (base + this.audioS * 0.7 - this.energy) * 0.08;
     this.hover += (this.hoverTarget - this.hover) * 0.08;
+    this.listen += (this.listenTarget - this.listen) * 0.1;
     this.pulse *= 0.92;
 
-    this.angle += 0.0022 + this.energy * 0.006 + this.hover * 0.010;
+    this.angle += 0.0022 + this.energy * 0.006 + this.hover * 0.010 + this.listen * 0.006;
 
     const wobble = 1 + this.energy * 0.10 + this.hover * 0.06
-      + this.audioS * 0.14 + this.pulse * 0.12
+      + this.audioS * 0.14 + this.pulse * 0.12 + this.listen * 0.05
       + Math.sin(t / 500) * 0.012 * (1 + this.energy);
 
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
@@ -294,6 +302,23 @@ export class Orb {
 
   _hudArcs(ctx, R, t) {
     const rot = t * 0.0004;
+
+    // Anillo vivo mientras escucha: late y gira, señal de que puede oírte.
+    if (this.listen > 0.02) {
+      const beat = 0.6 + Math.sin(t / 260) * 0.4;
+      ctx.save();
+      ctx.translate(this.cx, this.cy);
+      ctx.rotate(-rot * 4);
+      ctx.setLineDash([6, 9]);
+      ctx.lineWidth = 2.2;
+      ctx.strokeStyle = rgba(C.hot, this.listen * 0.5 * beat);
+      ctx.beginPath();
+      ctx.arc(0, 0, R * 1.02, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+
     const groups = [
       { r: 1.08, dash: [40, 22], w: 1.4, a: 0.5, dir: 1 },
       { r: 1.12, dash: [4, 10], w: 1.0, a: 0.35, dir: -1 },
