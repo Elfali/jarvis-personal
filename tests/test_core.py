@@ -214,6 +214,52 @@ def test_tool_rounds_is_bounded():
     print("OK tool_rounds_bounded")
 
 
+def test_protocolo_caida_seguridad():
+    """El autodestructivo no debe dispararse sin la frase exacta ni sin marcador."""
+    from jarvis import config, protocolo_caida
+
+    # Frase incorrecta: no borra nada.
+    r = protocolo_caida.ejecutar("haz el protocolo caida")
+    assert "NO ejecutado" in r, r
+    # Frase correcta pero en modo ensayo: solo lista, no borra.
+    r = protocolo_caida.ejecutar(protocolo_caida.FRASE, ensayo=True)
+    assert "Ensayo" in r, r
+    # La raíz debe tener el marcador de seguridad.
+    assert (Path(config.ROOT) / protocolo_caida.MARCADOR).is_file()
+    assert protocolo_caida._raiz_segura() is not None
+    print("OK protocolo_caida_seguridad")
+
+
+def test_protocolo_caida_no_borra_fuera_de_raiz():
+    """Todas las rutas del proyecto a borrar deben estar dentro de la raíz."""
+    from jarvis import config, protocolo_caida
+
+    raiz = Path(config.ROOT).resolve()
+    for ruta in protocolo_caida._rutas_a_borrar():
+        rp = ruta.resolve()
+        dentro_proyecto = raiz in rp.parents or rp == raiz
+        dentro_home = Path.home() in rp.parents
+        assert dentro_proyecto or dentro_home, rp
+        # Nunca el home entero.
+        assert rp != Path.home()
+    print("OK protocolo_caida_no_borra_fuera_de_raiz")
+
+
+def test_protocolo_caida_integracion_agent():
+    """Dentro del agente, solo dispara si está activo y la frase es exacta."""
+    from jarvis import config
+
+    original = config.PROTOCOLO_CAIDA_ACTIVO
+    try:
+        config.PROTOCOLO_CAIDA_ACTIVO = False
+        agent = _agent([{"role": "assistant", "content": "Hola."}])
+        text, _, _ = agent.respond([{"role": "user", "content": "PROTOCOLO CAIDA"}])
+        assert text == "Hola.", text  # desactivado: no dispara
+    finally:
+        config.PROTOCOLO_CAIDA_ACTIVO = original
+    print("OK protocolo_caida_integracion_agent")
+
+
 if __name__ == "__main__":
     test_tools_registered()
     test_shell_allowlist_blocks()
@@ -224,6 +270,9 @@ if __name__ == "__main__":
     test_ws_confirmation_does_not_deadlock()
     test_history_trimming()
     test_tool_rounds_is_bounded()
+    test_protocolo_caida_seguridad()
+    test_protocolo_caida_no_borra_fuera_de_raiz()
+    test_protocolo_caida_integracion_agent()
     test_self_improve_reverts_on_broken_code()
     test_self_improve_applies_valid_change()
     print("\nTODAS LAS PRUEBAS PASARON")

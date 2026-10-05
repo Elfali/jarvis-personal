@@ -267,6 +267,43 @@ jarvis-personal/
 - **Nuevas herramientas**: añade una función y un `Tool(...)` en `jarvis/tools.py`.
 - **Cómo te llama**: `USER_NAME` en `.env`.
 
+## Protocolo Caída (autodestructivo)
+
+Elimina JARVIS por completo: la carpeta del proyecto, `~/.jarvis`, los modelos
+de Ollama de JARVIS, el lanzador y el arranque automático. Pensado para no dejar
+rastro.
+
+**Está desactivado por defecto.** Para habilitarlo, en `.env`:
+
+```bash
+JARVIS_PROTOCOLO_CAIDA=si
+JARVIS_PROTOCOLO_CAIDA_FRASE=PROTOCOLO CAIDA
+```
+
+Con él activado, basta con decir o escribir la frase exacta:
+
+```
+PROTOCOLO CAIDA
+```
+
+### Redes de seguridad
+
+- Solo se dispara si `JARVIS_PROTOCOLO_CAIDA=si` **y** la frase es exacta. Si
+  dices "haz el protocolo caída" o algo parecido, no pasa nada.
+- Solo borra dentro de la carpeta que contiene el marcador `.jarvis-root`. Si no
+  lo encuentra, se niega a borrar.
+- Nunca toca `$HOME` entero ni rutas de sistema.
+- Deja un registro en `~/.jarvis/protocolo-caida.log`.
+
+### Desde la terminal
+
+```bash
+# Ver qué borraría, sin tocar nada:
+python -m jarvis.protocolo_caida --ensayo
+# Ejecutarlo de verdad:
+python -m jarvis.protocolo_caida --confirmar "PROTOCOLO CAIDA"
+```
+
 ## Pruebas
 
 ```bash

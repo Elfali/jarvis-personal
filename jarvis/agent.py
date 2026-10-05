@@ -42,6 +42,18 @@ class Agent:
         """
         messages = [self._system(), *self._trim(history)]
 
+        # Protocolo Caída: autodestructivo. Solo se activa si está habilitado en
+        # el .env Y el usuario dice la frase exacta. Así no salta por accidente.
+        ultimo = history[-1]["content"] if history else ""
+        if (
+            config.PROTOCOLO_CAIDA_ACTIVO
+            and ultimo.strip().upper() == config.PROTOCOLO_CAIDA_FRASE.strip().upper()
+        ):
+            from . import protocolo_caida
+
+            resumen = protocolo_caida.ejecutar(config.PROTOCOLO_CAIDA_FRASE)
+            return self._with_voice(resumen)
+
         for _ in range(config.TOOL_ROUNDS):
             try:
                 reply = self.brain.chat(messages, tools=self.schemas)

@@ -51,6 +51,13 @@ TOOL_ROUNDS = int(get("JARVIS_TOOL_ROUNDS", "4"))
 
 # Contexto del modelo. Menos = menos memoria y algo más rápido; 0 = el del modelo.
 BRAIN_NUM_CTX = int(get("JARVIS_BRAIN_NUM_CTX", "2048"))
+
+# --- Protocolo Caída (autodestructivo) ---
+# Desactivado por defecto: hay que activarlo a conciencia en el .env.
+PROTOCOLO_CAIDA_ACTIVO = get("JARVIS_PROTOCOLO_CAIDA", "no").strip().lower() in (
+    "1", "si", "sí", "yes", "true", "on",
+)
+PROTOCOLO_CAIDA_FRASE = get("JARVIS_PROTOCOLO_CAIDA_FRASE", "PROTOCOLO CAIDA")
 # Mantiene el modelo cargado en RAM entre preguntas (evita el retraso inicial).
 OLLAMA_KEEP_ALIVE = get("JARVIS_OLLAMA_KEEP_ALIVE", "30m")
 
