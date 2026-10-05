@@ -108,18 +108,7 @@
   }
   #reply.show { opacity: 1; }
 
-  /* ---------- Controles ---------- */
-  .controls {
-    position: fixed; left: 0; right: 0; bottom: 44px; z-index: 7;
-    display: flex; align-items: center; justify-content: center; gap: 18px;
-  }
-  .ghost {
-    padding: 8px 16px; border-radius: 20px; cursor: pointer;
-    border: 1px solid var(--line); background: rgba(255,140,60,.05);
-    color: var(--amber-soft); font-size: 12px; letter-spacing: 1px;
-    font-family: inherit; text-transform: uppercase;
-  }
-  .ghost:hover { background: rgba(255,140,60,.16); }
+  /* ---------- Pie ---------- */
   #hint {
     position: fixed; left: 0; right: 0; bottom: 18px; text-align: center;
     font-size: 10px; letter-spacing: 2px; color: rgba(255,176,96,.4);
@@ -223,9 +212,6 @@
   </div>
 
   <!-- Controles -->
-  <div class="controls">
-    <button class="ghost" id="test" title="Probar sonido">🔊 probar voz</button>
-  </div>
   <div id="hint">clic en el núcleo para hablar · pasa el ratón para interactuar</div>
 
   <div id="warn"></div>
@@ -400,23 +386,6 @@
       if (!recog) return;
       if (listening) recog.stop(); else recog.start();
     };
-
-    // ---------- Botón de prueba de voz ----------
-    document.getElementById("test").addEventListener("click", async () => {
-      try {
-        const r = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: "Di solo: probando la voz." }),
-        });
-        const d = await r.json();
-        showReply(d.reply || "(sin respuesta)");
-        if (d.audio) playAudio(d.audio, d.mime, d.reply);
-        else showWarn("El servidor no generó audio. Revisa: bash doctor.sh");
-      } catch (e) {
-        showWarn("No se pudo probar la voz: " + e);
-      }
-    });
 
     // ---------- WebSocket ----------
     let ws = null;
