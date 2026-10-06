@@ -267,6 +267,65 @@ jarvis-personal/
 - **Nuevas herramientas**: añade una función y un `Tool(...)` en `jarvis/tools.py`.
 - **Cómo te llama**: `USER_NAME` en `.env`.
 
+## Instalarlo como aplicación (PWA)
+
+JARVIS ya trae manifiesto e iconos. En Chrome, con el servidor encendido:
+
+1. Abre `http://localhost:8765`.
+2. Menú de Chrome (⋮) → **Transmitir, guardar y compartir** → **Instalar JARVIS**.
+   (O el icono de instalar en la barra de direcciones.)
+3. Se abre como ventana propia, sin barras del navegador, y aparece en el
+   Dock / Launchpad como una app más.
+
+En Mac también vale **Archivo → Guardar como app** desde Chrome. Así lo tienes
+"como aplicación" sin gastar espacio extra: el código son ~220 KB y el peso
+real son el `.venv` (69 MB) y los modelos de Ollama.
+
+## Ponerlo en un servidor (y quitar peso del ordenador)
+
+La idea: JARVIS corre en un servidor y tu Mac solo abre la interfaz. Tu
+ordenador deja de cargar con el `.venv` y los modelos.
+
+### Opción A — Docker (recomendada)
+
+```bash
+# En el servidor, dentro del repo:
+docker compose up -d --build
+```
+
+Queda escuchando en el puerto `8765`. Se reinicia solo (`restart: unless-stopped`).
+
+### Opción B — Manual en el servidor
+
+```bash
+git clone <tu-repo> && cd jarvis-personal
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+```
+
+En el `.env` del servidor:
+
+```bash
+JARVIS_HOST=0.0.0.0          # aceptar conexiones de fuera
+JARVIS_BRAIN_PROVIDER=openai # cerebro remoto (Groq, OpenRouter...) sin GPU
+```
+
+Arrancar: `python -m jarvis` (o con `systemd`/`pm2` para que se reinicie).
+
+### Acceder desde tu Mac
+
+- **Red local**: `http://IP-del-servidor:8765`
+- **Desde internet**: pon un proxy inverso con HTTPS (Caddy/Nginx) delante.
+  Importante: `edge-tts` (la voz) necesita salida a internet desde el servidor.
+
+### Aviso de seguridad
+
+El servidor **no tiene contraseña**. Si lo expones a internet, cualquiera que
+encuentre la URL podría usar tu JARVIS (y ejecutar comandos, si tiene shell).
+Ponlo **solo en tu red local** o protégelo con contraseña en el proxy inverso.
+Nunca lo dejes abierto a internet sin proteger.
+
 ## Protocolo Caída (autodestructivo)
 
 Elimina JARVIS por completo: la carpeta del proyecto, `~/.jarvis`, los modelos

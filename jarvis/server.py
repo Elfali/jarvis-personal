@@ -128,7 +128,7 @@ app.mount("/static", StaticFiles(directory=FRONTEND), name="static")
 def main() -> None:
     import uvicorn
 
-    uvicorn.run(app, host="127.0.0.1", port=config.PORT)
+    uvicorn.run(app, host=config.HOST, port=config.PORT)
 
 
 if __name__ == "__main__":

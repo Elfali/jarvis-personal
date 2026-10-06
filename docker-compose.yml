@@ -1,0 +1,12 @@
+services:
+  jarvis:
+    build: .
+    container_name: jarvis
+    ports:
+      - "8765:8765"
+    env_file:
+      - .env
+    environment:
+      # Dentro del contenedor hay que escuchar en todas las interfaces.
+      JARVIS_HOST: 0.0.0.0
+    restart: unless-stopped

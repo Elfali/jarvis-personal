@@ -77,6 +77,8 @@ USER_NAME = get("USER_NAME", "señor")
 ASSISTANT_NAME = get("JARVIS_NAME", "JARVIS")
 LANGUAGE = get("JARVIS_LANGUAGE", "es")
 PORT = int(get("JARVIS_PORT", "8765"))
+# Interfaz de red. Por defecto solo local (seguro). En un servidor, 0.0.0.0.
+HOST = get("JARVIS_HOST", "127.0.0.1")
 
 # --- Límites de seguridad ---
 # Comandos de shell que JARVIS puede ejecutar sin preguntar. Amplía con cuidado.

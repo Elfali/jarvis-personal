@@ -4,6 +4,13 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>JARVIS</title>
+<meta name="theme-color" content="#ff9a3c" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="JARVIS" />
+<link rel="manifest" href="/static/manifest.webmanifest" />
+<link rel="apple-touch-icon" href="/static/icon-192.png" />
+<link rel="icon" href="/static/icon-192.png" />
 <style>
   :root {
     --amber: #ff9a3c;
@@ -447,6 +454,11 @@
       textInput.value = "";
       send(value);
     });
+
+    // ---------- Instalable como aplicación (PWA) ----------
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/static/sw.js").catch(() => {});
+    }
 
     // ---------- Audio del servidor -> reproducción ----------
     function b64ToBlob(b64, mime) {
