@@ -88,6 +88,10 @@ PORT = int(get("JARVIS_PORT", "8765"))
 # Interfaz de red. Por defecto solo local (seguro). En un servidor, 0.0.0.0.
 HOST = get("JARVIS_HOST", "127.0.0.1")
 
+# Contraseña de acceso. Vacía = sin contraseña (solo para uso local). Obligatoria
+# si JARVIS está expuesto en internet.
+PASSWORD = get("JARVIS_PASSWORD", "")
+
 # --- Límites de seguridad ---
 # Comandos de shell que JARVIS puede ejecutar sin preguntar. Amplía con cuidado.
 SHELL_ALLOWLIST = [

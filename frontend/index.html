@@ -432,7 +432,12 @@
     function connect() {
       ws = new WebSocket(`ws://${location.host}/ws`);
       ws.onopen = () => setStatus("en espera");
-      ws.onclose = () => { setStatus("reconectando…"); setTimeout(connect, 1500); };
+      ws.onclose = (e) => {
+        // 4401 = sin autorizar: no insistir, ir al login.
+        if (e && e.code === 4401) { location.href = "/login"; return; }
+        setStatus("reconectando…");
+        setTimeout(connect, 1500);
+      };
       ws.onerror = () => setStatus("sin conexión con JARVIS");
       ws.onmessage = (ev) => handle(JSON.parse(ev.data));
     }

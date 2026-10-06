@@ -14,12 +14,12 @@ import asyncio
 import base64
 import json
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, Form, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import config, self_improve
+from . import auth, config, self_improve
 from . import memory as memoria
 from .agent import Agent
 
@@ -42,8 +42,9 @@ class RememberIn(BaseModel):
 
 
 @app.get("/api/memory")
-def get_memory(q: str = "", limit: int = 50) -> dict:
+def get_memory(request: Request, q: str = "", limit: int = 50) -> dict:
     """Devuelve la memoria (hechos y registro) y sus estadísticas."""
+    _exigir_auth(request)
     return {
         "notas": memoria.recall(q, limit=limit),
         "historial": memoria.history(limit=limit),
@@ -52,14 +53,45 @@ def get_memory(q: str = "", limit: int = 50) -> dict:
 
 
 @app.post("/api/memory")
-def post_memory(payload: RememberIn) -> dict:
+def post_memory(payload: RememberIn, request: Request) -> dict:
     """Guarda un hecho duradero en la memoria del servidor."""
+    _exigir_auth(request)
     return {"reply": memoria.remember(payload.note), "stats": memoria.stats()}
 
 
+@app.get("/login")
+def login_form() -> HTMLResponse:
+    return HTMLResponse(auth.LOGIN_HTML.replace("{error}", ""))
+
+
+@app.post("/login")
+def login(password: str = Form("")) -> Response:
+    if auth.comprobar_password(password):
+        resp = RedirectResponse("/", status_code=303)
+        resp.set_cookie(
+            auth.COOKIE, auth.token_cookie(), httponly=True, samesite="lax"
+        )
+        return resp
+    return HTMLResponse(
+        auth.LOGIN_HTML.replace(
+            "{error}", '<div class="err">Contraseña incorrecta</div>'
+        ),
+        status_code=401,
+    )
+
+
 @app.get("/")
-def index() -> FileResponse:
+def index(request: Request) -> Response:
+    if not auth.cookie_valida(request.cookies.get(auth.COOKIE)):
+        return RedirectResponse("/login", status_code=303)
     return FileResponse(FRONTEND / "index.html")
+
+
+def _exigir_auth(request: Request) -> None:
+    if not auth.cookie_valida(request.cookies.get(auth.COOKIE)):
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=401, detail="No autorizado")
 
 
 @app.get("/api/health")
@@ -82,14 +114,16 @@ def _encode(text: str, mime: str | None, audio: bytes | None) -> dict:
 
 
 @app.post("/api/chat")
-def chat(payload: ChatIn) -> dict:
+def chat(payload: ChatIn, request: Request) -> dict:
+    _exigir_auth(request)
     history = [*payload.history, {"role": "user", "content": payload.message}]
     text, mime, audio = agent.respond(history)
     return _encode(text, mime, audio)
 
 
 @app.post("/api/improve")
-def improve(payload: ImproveIn) -> dict:
+def improve(payload: ImproveIn, request: Request) -> dict:
+    _exigir_auth(request)
     summary = self_improve.improve(payload.request, agent.brain)
     text, mime, audio = agent._with_voice(summary)
     return _encode(text, mime, audio)
@@ -97,6 +131,11 @@ def improve(payload: ImproveIn) -> dict:
 
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket) -> None:
+    # Sin contraseña válida no se acepta la conexión (el WebSocket lleva la
+    # cookie del mismo origen, así que el login del navegador la cubre).
+    if not auth.cookie_valida(ws.cookies.get(auth.COOKIE)):
+        await ws.close(code=4401)
+        return
     await ws.accept()
     history: list[dict] = []
     loop = asyncio.get_running_loop()

@@ -318,6 +318,17 @@ docker compose up -d --build
 
 Queda escuchando en el puerto `8765`. Se reinicia solo (`restart: unless-stopped`).
 
+### Opción rápida en Ubuntu (un comando)
+
+Si el servidor es Ubuntu (Oracle Cloud, Hetzner, un PC viejo...):
+
+```bash
+sudo bash deploy/deploy.sh
+```
+
+Instala todo, pone una contraseña aleatoria y deja JARVIS como servicio que
+arranca solo. Guía detallada para Oracle: [`deploy/oracle.md`](deploy/oracle.md).
+
 ### Opción B — Manual en el servidor
 
 ```bash
@@ -344,10 +355,10 @@ Arrancar: `python -m jarvis` (o con `systemd`/`pm2` para que se reinicie).
 
 ### Aviso de seguridad
 
-El servidor **no tiene contraseña**. Si lo expones a internet, cualquiera que
-encuentre la URL podría usar tu JARVIS (y ejecutar comandos, si tiene shell).
-Ponlo **solo en tu red local** o protégelo con contraseña en el proxy inverso.
-Nunca lo dejes abierto a internet sin proteger.
+Si pones JARVIS en un servidor con IP pública, **define `JARVIS_PASSWORD`** en
+el `.env` (el script `deploy.sh` lo hace solo). Sin contraseña, cualquiera que
+dé con la URL podría usar tu JARVIS y leer tu memoria. Mejor aún: limita el
+origen en el cortafuegos del proveedor a tu propia IP.
 
 ## Protocolo Caída (autodestructivo)
 

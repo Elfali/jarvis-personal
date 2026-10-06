@@ -321,6 +321,29 @@ def test_memory_autolearn_no_rompe():
     print("OK memory_autolearn_no_rompe")
 
 
+def test_auth_password():
+    """La contraseña protege el acceso y la cookie firmada es válida."""
+    from jarvis import auth, config
+
+    original = config.PASSWORD
+    try:
+        config.PASSWORD = ""
+        assert not auth.activo()
+        assert auth.cookie_valida(None)  # sin contraseña, todo permitido
+
+        config.PASSWORD = "secreta123"
+        assert auth.activo()
+        assert not auth.cookie_valida(None)
+        assert not auth.cookie_valida("inventada")
+        assert auth.comprobar_password("secreta123")
+        assert not auth.comprobar_password("otra")
+        assert not auth.comprobar_password(None)
+        assert auth.cookie_valida(auth.token_cookie())
+    finally:
+        config.PASSWORD = original
+    print("OK auth_password")
+
+
 if __name__ == "__main__":
     test_tools_registered()
     test_shell_allowlist_blocks()
@@ -337,6 +360,7 @@ if __name__ == "__main__":
     test_memory_persistente()
     test_memory_se_inyecta_en_el_prompt()
     test_memory_autolearn_no_rompe()
+    test_auth_password()
     test_self_improve_reverts_on_broken_code()
     test_self_improve_applies_valid_change()
     print("\nTODAS LAS PRUEBAS PASARON")
