@@ -11,6 +11,11 @@ COPY jarvis ./jarvis
 COPY frontend ./frontend
 COPY .jarvis-root .
 
+# Carpeta de memoria (hechos + conversación). En Docker conviene montarla como
+# volumen para que la memoria sobreviva a reinicios y actualizaciones.
+RUN mkdir -p /app/data
+VOLUME ["/app/data"]
+
 ENV JARVIS_PORT=8765
 EXPOSE 8765
 

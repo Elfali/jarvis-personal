@@ -260,6 +260,67 @@ def test_protocolo_caida_integracion_agent():
     print("OK protocolo_caida_integracion_agent")
 
 
+def test_memory_persistente():
+    """La memoria se guarda en disco y sobrevive (servidor)."""
+    import tempfile
+    from pathlib import Path as P
+
+    from jarvis import config, memory
+
+    original = config.DATA_DIR
+    tmp = P(tempfile.mkdtemp())
+    try:
+        config.DATA_DIR = tmp
+        memory.remember("Marco usa MacBook Air")
+        memory.remember("A Marco le gusta el cafe")
+        memory.save_turn("hola", "hola, senor")
+        # Releer desde disco, como tras un reinicio del servidor.
+        assert "MacBook Air" in memory.recall()
+        assert "cafe" in memory.recall("cafe")
+        assert "MacBook" not in memory.recall("cafe")
+        h = memory.history()
+        assert h and h[-1]["user"] == "hola"
+        s = memory.stats()
+        assert s["notas"] == 2 and s["turnos"] == 1, s
+        assert (tmp / "memory.jsonl").exists()
+        assert (tmp / "history.jsonl").exists()
+    finally:
+        config.DATA_DIR = original
+    print("OK memory_persistente")
+
+
+def test_memory_se_inyecta_en_el_prompt():
+    """Los hechos memorizados deben aparecer en el prompt del sistema."""
+    import tempfile
+    from pathlib import Path as P
+
+    from jarvis import config, memory
+
+    original_dir = config.DATA_DIR
+    tmp = P(tempfile.mkdtemp())
+    try:
+        config.DATA_DIR = tmp
+        memory.remember("El usuario se llama Marco")
+        agent = _agent([])
+        sistema = agent._system()["content"]
+        assert "Marco" in sistema, sistema
+    finally:
+        config.DATA_DIR = original_dir
+    print("OK memory_se_inyecta_en_el_prompt")
+
+
+def test_memory_autolearn_no_rompe():
+    """Si el cerebro devuelve basura, el aprendizaje automático no falla."""
+    from jarvis import memory
+
+    class Basura:
+        def chat(self, messages, tools=None):
+            return {"role": "assistant", "content": "esto no es json"}
+
+    assert memory.extract_facts(Basura(), "hola", "hola") == []
+    print("OK memory_autolearn_no_rompe")
+
+
 if __name__ == "__main__":
     test_tools_registered()
     test_shell_allowlist_blocks()
@@ -273,6 +334,9 @@ if __name__ == "__main__":
     test_protocolo_caida_seguridad()
     test_protocolo_caida_no_borra_fuera_de_raiz()
     test_protocolo_caida_integracion_agent()
+    test_memory_persistente()
+    test_memory_se_inyecta_en_el_prompt()
+    test_memory_autolearn_no_rompe()
     test_self_improve_reverts_on_broken_code()
     test_self_improve_applies_valid_change()
     print("\nTODAS LAS PRUEBAS PASARON")

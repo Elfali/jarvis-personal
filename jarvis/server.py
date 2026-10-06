@@ -20,6 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from . import config, self_improve
+from . import memory as memoria
 from .agent import Agent
 
 app = FastAPI(title="JARVIS Personal")
@@ -34,6 +35,26 @@ class ChatIn(BaseModel):
 
 class ImproveIn(BaseModel):
     request: str
+
+
+class RememberIn(BaseModel):
+    note: str
+
+
+@app.get("/api/memory")
+def get_memory(q: str = "", limit: int = 50) -> dict:
+    """Devuelve la memoria (hechos y registro) y sus estadísticas."""
+    return {
+        "notas": memoria.recall(q, limit=limit),
+        "historial": memoria.history(limit=limit),
+        "stats": memoria.stats(),
+    }
+
+
+@app.post("/api/memory")
+def post_memory(payload: RememberIn) -> dict:
+    """Guarda un hecho duradero en la memoria del servidor."""
+    return {"reply": memoria.remember(payload.note), "stats": memoria.stats()}
 
 
 @app.get("/")

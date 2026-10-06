@@ -8,7 +8,6 @@ confirmación por voz antes de ejecutarlas.
 
 from __future__ import annotations
 
-import json
 import shlex
 import subprocess
 import sys
@@ -149,18 +148,15 @@ def _system_info() -> str:
 
 
 def _remember(note: str) -> str:
-    path = config.DATA_DIR / "memory.jsonl"
-    with path.open("a") as fh:
-        fh.write(json.dumps({"note": note}) + "\n")
-    return "Lo recordaré."
+    from . import memory
+
+    return memory.remember(note)
 
 
-def _recall() -> str:
-    path = config.DATA_DIR / "memory.jsonl"
-    if not path.exists():
-        return "No tengo nada memorizado todavía."
-    notes = [json.loads(line)["note"] for line in path.read_text().splitlines() if line.strip()]
-    return "\n".join(f"- {n}" for n in notes[-50:]) or "Nada memorizado."
+def _recall(query: str = "") -> str:
+    from . import memory
+
+    return memory.recall(query)
 
 
 def build_tools() -> list[Tool]:
@@ -231,8 +227,19 @@ def build_tools() -> list[Tool]:
         ),
         Tool(
             name="recall",
-            description="Recupera todo lo que JARVIS tiene memorizado.",
-            parameters={"type": "object", "properties": {}},
+            description=(
+                "Recupera lo que JARVIS tiene memorizado. Puedes pasar una "
+                "palabra clave para buscar solo lo relacionado."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Palabra clave a buscar (opcional).",
+                    }
+                },
+            },
             func=_recall,
         ),
     ]

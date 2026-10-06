@@ -19,7 +19,17 @@ class Agent:
         self.schemas = [t.schema() for t in self.tools.values()]
 
     def _system(self) -> dict:
-        return {"role": "system", "content": config.SYSTEM_PROMPT}
+        """Prompt del sistema, con los hechos memorizados inyectados."""
+        from . import memory
+
+        base = config.SYSTEM_PROMPT
+        if config.MEMORY_CONTEXT_LIMIT > 0:
+            notas = memory.recall(limit=config.MEMORY_CONTEXT_LIMIT)
+            if notas and not notas.startswith("No tengo nada"):
+                base += (
+                    "\n\nLo que ya sabes del usuario (memoria permanente):\n" + notas
+                )
+        return {"role": "system", "content": base}
 
     @staticmethod
     def _trim(history: list[dict]) -> list[dict]:
@@ -64,7 +74,7 @@ class Agent:
             tool_calls = reply.get("tool_calls") or []
             if not tool_calls:
                 text = (reply.get("content") or "").strip() or "No tengo nada que decir."
-                return self._with_voice(text)
+                return self._finish(text, ultimo)
 
             messages.append(reply)
             for call in tool_calls:
@@ -92,6 +102,15 @@ class Agent:
             return str(tool.func(**args))
         except Exception as exc:  # noqa: BLE001
             return f"La herramienta {name} falló: {exc}"
+
+    def _finish(self, text: str, user_message: str) -> tuple[str, str | None, bytes | None]:
+        """Cierra el turno: guarda la memoria y devuelve texto + voz."""
+        from . import memory
+
+        memory.save_turn(user_message, text)
+        if config.MEMORY_AUTO_LEARN and user_message.strip():
+            memory.extract_facts(self.brain, user_message, text)
+        return self._with_voice(text)
 
     def _with_voice(self, text: str) -> tuple[str, str | None, bytes | None]:
         try:

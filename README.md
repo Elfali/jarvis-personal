@@ -267,6 +267,29 @@ jarvis-personal/
 - **Nuevas herramientas**: añade una función y un `Tool(...)` en `jarvis/tools.py`.
 - **Cómo te llama**: `USER_NAME` en `.env`.
 
+## Memoria (aprende y lo guarda en el servidor)
+
+JARVIS guarda todo en la carpeta `data/` (o donde apunte `JARVIS_DATA_DIR`):
+
+| Fichero | Qué guarda |
+|---|---|
+| `memory.jsonl` | Hechos duraderos que aprende de ti |
+| `history.jsonl` | Registro completo de la conversación |
+
+- **Aprendizaje automático**: al terminar cada respuesta, JARVIS extrae hechos
+  duraderos (gustos, proyectos, datos) y los guarda. Controla con
+  `JARVIS_MEMORY_AUTO_LEARN=si/no` y `JARVIS_MEMORY_CONTEXT_LIMIT`.
+- **Los recuerda**: los hechos se inyectan en cada respuesta, así que "sabe"
+  cosas de ti aunque el historial corto ya no las tenga.
+- **Persistencia**: en Docker, la carpeta `data/` se monta como volumen, así
+  que la memoria **sobrevive a reinicios y actualizaciones**.
+- **Herramientas**: `remember` (guardar) y `recall` (buscar).
+- **API**: `GET /api/memory` (ver memoria y estadísticas), `POST /api/memory`
+  (guardar un hecho).
+
+Consejo: guarda `data/` con copia de seguridad. Es el "cerebro aprendido" de
+JARVIS y no está en Git.
+
 ## Instalarlo como aplicación (PWA)
 
 JARVIS ya trae manifiesto e iconos. En Chrome, con el servidor encendido:

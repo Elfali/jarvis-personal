@@ -52,6 +52,14 @@ TOOL_ROUNDS = int(get("JARVIS_TOOL_ROUNDS", "4"))
 # Contexto del modelo. Menos = menos memoria y algo más rápido; 0 = el del modelo.
 BRAIN_NUM_CTX = int(get("JARVIS_BRAIN_NUM_CTX", "2048"))
 
+# --- Memoria (persistente en el servidor) ---
+# Aprender automáticamente hechos duraderos cuesta una llamada extra al modelo.
+MEMORY_AUTO_LEARN = get("JARVIS_MEMORY_AUTO_LEARN", "si").strip().lower() in (
+    "1", "si", "sí", "yes", "true", "on",
+)
+# Cuántos hechos recordados se inyectan en cada respuesta (0 = ninguno).
+MEMORY_CONTEXT_LIMIT = int(get("JARVIS_MEMORY_CONTEXT_LIMIT", "20"))
+
 # --- Protocolo Caída (autodestructivo) ---
 # Desactivado por defecto: hay que activarlo a conciencia en el .env.
 PROTOCOLO_CAIDA_ACTIVO = get("JARVIS_PROTOCOLO_CAIDA", "no").strip().lower() in (

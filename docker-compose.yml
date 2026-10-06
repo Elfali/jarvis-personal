@@ -9,4 +9,8 @@ services:
     environment:
       # Dentro del contenedor hay que escuchar en todas las interfaces.
       JARVIS_HOST: 0.0.0.0
+    volumes:
+      # La memoria de JARVIS vive aquí, fuera del contenedor: sobrevive a
+      # reinicios y actualizaciones.
+      - ./data:/app/data
     restart: unless-stopped
